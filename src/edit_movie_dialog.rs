@@ -5,12 +5,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use std::path::Path;
+
 use gtk::prelude::*;
 use gtk::glib;
 use adw::prelude::*;
 use glib::subclass::prelude::*;
 
 use videoclub_core::movie::MovieObject;
+use videoclub_core::settings::AppSettings;
 use crate::window::VideoclubWindow;
 
 /// Construye y devuelve el diálogo de edición de metadatos de una película.
@@ -47,6 +50,44 @@ pub fn build_edit_movie_dialog(
     content_box.set_margin_bottom(16);
     content_box.set_margin_start(16);
     content_box.set_margin_end(16);
+
+    // ── Grupo: información del archivo ───────────────────────────────────────
+    let file_group = adw::PreferencesGroup::new();
+    file_group.set_title("File Info");
+
+    // Nombre real del archivo de video
+    let video_path = movie.video_path();
+    let video_filename = Path::new(&video_path)
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or("—");
+    let filename_row = adw::ActionRow::new();
+    filename_row.set_title("Video File");
+    let filename_label = gtk::Label::new(Some(video_filename));
+    filename_label.set_selectable(true);
+    filename_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+    filename_label.add_css_class("dim-label");
+    filename_row.add_suffix(&filename_label);
+    file_group.add(&filename_row);
+
+    // Archivo de subtítulos (si existe)
+    let sub_info = resolve_subtitle_file(&video_path);
+    let subtitle_row = adw::ActionRow::new();
+    subtitle_row.set_title("Subtitles");
+    let subtitle_label = gtk::Label::new(Some(&sub_info));
+    subtitle_label.set_selectable(true);
+    subtitle_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+    subtitle_label.add_css_class(if sub_info.starts_with("✓") { "accent" } else { "dim-label" });
+    subtitle_row.add_suffix(&subtitle_label);
+    file_group.add(&subtitle_row);
+
+    content_box.append(&file_group);
+
+    // ── Separador ─────────────────────────────────────────────────────────
+    let sep0 = gtk::Separator::new(gtk::Orientation::Horizontal);
+    sep0.set_margin_top(12);
+    sep0.set_margin_bottom(4);
+    content_box.append(&sep0);
 
     // ── Grupo: parámetros de búsqueda ─────────────────────────────────────
     let search_group = adw::PreferencesGroup::new();
@@ -253,4 +294,34 @@ pub fn build_edit_movie_dialog(
     ));
 
     dialog
+}
+
+/// Busca el archivo de subtítulos para un video y devuelve una cadena descriptiva.
+///
+/// Prioriza el idioma preferido configurado en Ajustes.
+/// Devuelve `"✓ subtitles.srt"` si se encuentra, o `"Not available"` si no.
+fn resolve_subtitle_file(video_path: &str) -> String {
+    let path = Path::new(video_path);
+    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let lang = AppSettings::new().preferred_subtitle_language();
+
+    // Intentar con el idioma preferido
+    let candidate = parent.join(format!("{}.{}.srt", stem, lang));
+    if candidate.exists() {
+        return format!("✓ {}", candidate.file_name().unwrap().to_string_lossy());
+    }
+
+    // Fallback: buscar cualquier .srt con el mismo stem
+    if let Ok(entries) = std::fs::read_dir(parent) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.starts_with(stem) && name_str.ends_with(".srt") {
+                return format!("✓ {}", name_str);
+            }
+        }
+    }
+
+    "Not available".to_string()
 }

@@ -63,6 +63,9 @@
                 <property name="icon-name">application-x-subrip-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Subtitles available</property>
                 <property name="visible">false</property>
+                <style>
+                  <class name="subtitle-badge"/>
+                </style>
               </object>
             </child>
           </object>

@@ -45,3 +45,8 @@
     background-color: @accent_bg_color;
     border-radius: 2px;
 }
+
+/* Badge de subtítulos disponibles (verde = listos) */
+.subtitle-badge {
+    color: #2ecc71;
+}
