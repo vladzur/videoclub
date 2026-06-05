@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Videoclub
+Exec=videoclub
+Icon=com.vladzur.videoclub
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=GTK;
+StartupNotify=true
+DBusActivatable=true

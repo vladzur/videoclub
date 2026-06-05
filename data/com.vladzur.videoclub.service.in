@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.vladzur.videoclub
+Exec=@bindir@/videoclub --gapplication-service

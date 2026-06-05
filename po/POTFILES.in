@@ -1,0 +1,6 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/com.vladzur.videoclub.desktop.in
+data/com.vladzur.videoclub.metainfo.xml.in
+data/com.vladzur.videoclub.gschema.xml
+src/window.ui
