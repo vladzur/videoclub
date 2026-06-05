@@ -20,6 +20,10 @@
 
 mod application;
 mod config;
+mod edit_movie_dialog;
+mod player;
+mod preferences_dialog;
+mod widgets;
 mod window;
 
 use self::application::VideoclubApplication;
@@ -31,6 +35,19 @@ use gtk::{gio, glib};
 use gtk::prelude::*;
 
 fn main() -> glib::ExitCode {
+    // Las API keys se configuran en Preferencias (GSettings), no en .env.
+    // Cargamos .env opcionalmente para que RUST_LOG siga funcionando en desarrollo.
+    dotenvy::dotenv().ok();
+
+    // Inicializar el sistema de logging para diagnóstico
+    env_logger::init();
+
+    // Inicializar GStreamer (debe llamarse antes de usar cualquier pipeline)
+    if let Err(e) = gstreamer::init() {
+        eprintln!("Error al inicializar GStreamer: {}", e);
+        return glib::ExitCode::FAILURE;
+    }
+
     // Set up gettext translations
     bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).expect("Unable to bind the text domain");
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8")

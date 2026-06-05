@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="Adw" version="1.0"/>
+  <template class="VideoclubVideoWidget" parent="GtkWidget">
+    <child>
+      <object class="AdwToolbarView">
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
+        <!-- Header bar del reproductor: controles de video + botón cerrar del SO -->
+        <child type="top">
+          <object class="AdwHeaderBar" id="video_header_bar">
+            <property name="show-back-button">false</property>
+            <style>
+              <class name="flat"/>
+              <class name="video-header"/>
+            </style>
+            <child type="end">
+              <object class="GtkButton" id="fullscreen_button">
+                <property name="icon-name">view-fullscreen-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Toggle fullscreen</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Contenido: video + controles flotantes -->
+        <property name="content">
+          <object class="GtkOverlay" id="overlay">
+            <property name="hexpand">true</property>
+            <property name="vexpand">true</property>
+            <child>
+              <object class="GtkPicture" id="picture">
+                <property name="can-shrink">true</property>
+                <property name="content-fit">contain</property>
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
+              </object>
+            </child>
+            <child type="overlay">
+              <object class="GtkRevealer" id="controls_revealer">
+                <property name="transition-type">crossfade</property>
+                <property name="reveal-child">true</property>
+                <property name="halign">fill</property>
+                <property name="valign">end</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="margin-bottom">12</property>
+                    <style>
+                      <class name="video-controls"/>
+                    </style>
+                    <child>
+                      <object class="GtkScale" id="progress_scale">
+                        <property name="draw-value">false</property>
+                        <property name="hexpand">true</property>
+                        <style>
+                          <class name="video-progress"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkButton" id="play_button">
+                            <property name="icon-name">media-playback-start-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkImage" id="play_icon">
+                            <property name="icon-name">media-playback-start-symbolic</property>
+                            <property name="visible">false</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="time_label">
+                            <property name="label">00:00 / 00:00</property>
+                            <property name="halign">start</property>
+                            <property name="hexpand">true</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScaleButton" id="volume_button">
+                            <property name="value">1.0</property>
+                            <property name="tooltip-text" translatable="yes">Volume</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </child>
+  </template>
+</interface>

@@ -3,5 +3,9 @@
   <gresource prefix="/com/vladzur/videoclub">
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks">shortcuts-dialog.ui</file>
+    <file preprocess="xml-stripblanks">video_widget.ui</file>
+    <file preprocess="xml-stripblanks">poster_card.ui</file>
+    <file>style.css</file>
+    <file>../data/poster_placeholder.svg</file>
   </gresource>
 </gresources>

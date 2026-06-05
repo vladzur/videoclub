@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" width="200" height="300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d2d2d"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="300" rx="8" fill="url(#bg)"/>
+  <!-- Film strip holes top -->
+  <rect x="8"  y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="30" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="52" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="74" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="96" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="118" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="140" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="162" y="12" width="14" height="10" rx="2" fill="#111"/>
+  <!-- Film strip holes bottom -->
+  <rect x="8"  y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="30" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="52" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="74" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="96" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="118" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="140" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <rect x="162" y="278" width="14" height="10" rx="2" fill="#111"/>
+  <!-- Camera/film icon -->
+  <g transform="translate(100,140)" fill="#555">
+    <!-- Lens outer -->
+    <circle cx="0" cy="0" r="40" fill="none" stroke="#555" stroke-width="4"/>
+    <!-- Lens inner -->
+    <circle cx="0" cy="0" r="26" fill="none" stroke="#555" stroke-width="3"/>
+    <circle cx="0" cy="0" r="14" fill="#555"/>
+    <!-- Play triangle -->
+    <polygon points="-6,-9 14,0 -6,9" fill="#888"/>
+  </g>
+</svg>

@@ -4,13 +4,22 @@
   <requires lib="Adw" version="1.0"/>
   <template class="VideoclubWindow" parent="AdwApplicationWindow">
     <property name="title" translatable="yes">Videoclub</property>
-    <property name="default-width">800</property>
-    <property name="default-height">600</property>
+    <property name="default-width">1100</property>
+    <property name="default-height">700</property>
     <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
-          <object class="AdwHeaderBar">
+          <object class="AdwHeaderBar" id="header_bar">
+            <property name="show-title">true</property>
+            <child type="start">
+              <!-- Botón de búsqueda -->
+              <object class="GtkToggleButton" id="search_button">
+                <property name="icon-name">system-search-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Search movies</property>
+              </object>
+            </child>
             <child type="end">
+              <!-- Menú principal -->
               <object class="GtkMenuButton">
                 <property name="primary">True</property>
                 <property name="icon-name">open-menu-symbolic</property>
@@ -18,14 +27,108 @@
                 <property name="menu-model">primary_menu</property>
               </object>
             </child>
+            <child type="end">
+              <!-- Botón agregar carpeta -->
+              <object class="GtkButton" id="add_folder_button">
+                <property name="icon-name">folder-new-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Add movie folder</property>
+              </object>
+            </child>
+            <child type="end">
+              <!-- Botón re-escanear biblioteca -->
+              <object class="GtkButton" id="refresh_button">
+                <property name="icon-name">view-refresh-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Refresh library</property>
+              </object>
+            </child>
+            <child type="end">
+              <!-- Botón de preferencias -->
+              <object class="GtkButton">
+                <property name="icon-name">preferences-system-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Preferences</property>
+                <property name="action-name">app.preferences</property>
+              </object>
+            </child>
           </object>
         </child>
         <property name="content">
-          <object class="GtkLabel" id="label">
-            <property name="label" translatable="yes">Hello, World!</property>
-            <style>
-              <class name="title-1"/>
-            </style>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <!-- Barra de búsqueda -->
+            <child>
+              <object class="GtkSearchBar" id="search_bar">
+                <property name="key-capture-widget">VideoclubWindow</property>
+                <child>
+                  <object class="GtkSearchEntry" id="search_entry">
+                    <property name="placeholder-text" translatable="yes">Search movies…</property>
+                    <property name="hexpand">true</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <!-- Vista de navegación: catálogo → reproductor -->
+            <child>
+              <object class="AdwNavigationView" id="navigation_view">
+                <property name="vexpand">true</property>
+                <child>
+                  <object class="AdwNavigationPage" id="catalog_page">
+                    <property name="title" translatable="yes">Videoclub</property>
+                    <property name="tag">catalog</property>
+                    <property name="child">
+                      <!-- Stack: estado vacío vs. catálogo -->
+                      <object class="GtkStack" id="content_stack">
+                        <property name="transition-type">crossfade</property>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="name">empty</property>
+                            <property name="child">
+                              <object class="AdwStatusPage" id="empty_page">
+                                <property name="icon-name">video-x-generic-symbolic</property>
+                                <property name="title" translatable="yes">No Movies Found</property>
+                                <property name="description" translatable="yes">Add a folder with your movie collection to get started.</property>
+                                <property name="child">
+                                  <object class="GtkButton" id="empty_add_folder_button">
+                                    <property name="label" translatable="yes">Add Movie Folder</property>
+                                    <property name="halign">center</property>
+                                    <style>
+                                      <class name="pill"/>
+                                      <class name="suggested-action"/>
+                                    </style>
+                                  </object>
+                                </property>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="name">catalog</property>
+                            <property name="child">
+                              <object class="GtkScrolledWindow">
+                                <property name="hscrollbar-policy">never</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">true</property>
+                                <child>
+                                  <object class="GtkGridView" id="movie_grid">
+                                    <property name="max-columns">6</property>
+                                    <property name="min-columns">2</property>
+                                    <property name="single-click-activate">true</property>
+                                    <property name="margin-start">16</property>
+                                    <property name="margin-end">16</property>
+                                    <property name="margin-top">16</property>
+                                    <property name="margin-bottom">16</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
         </property>
       </object>
@@ -37,6 +140,8 @@
         <attribute name="label" translatable="yes">_Preferences</attribute>
         <attribute name="action">app.preferences</attribute>
       </item>
+    </section>
+    <section>
       <item>
         <attribute name="label" translatable="yes">_Keyboard Shortcuts</attribute>
         <attribute name="action">app.shortcuts</attribute>

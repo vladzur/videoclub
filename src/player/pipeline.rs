@@ -1,0 +1,214 @@
+// player/pipeline.rs
+//
+// Copyright 2026 Vladimir Zurita
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+use gtk::gdk;
+use gstreamer::prelude::*;
+use log::{error, info, warn};
+
+use super::events::PlaybackState;
+
+/// Representa el pipeline de reproducción de GStreamer.
+#[allow(dead_code)]
+pub struct PlaybackPipeline {
+    /// Elemento principal del pipeline.
+    playbin: gstreamer::Element,
+    /// Bus de mensajes de GStreamer para monitorear el estado.
+    bus: gstreamer::Bus,
+    /// Estado actual del pipeline.
+    state: std::cell::Cell<PlaybackState>,
+    /// Sink de video (gtk4paintablesink si está disponible).
+    video_sink: Option<gstreamer::Element>,
+}
+
+#[allow(dead_code)]
+impl PlaybackPipeline {
+    /// Crea un nuevo pipeline de reproducción listo para usar.
+    ///
+    /// Intenta configurar `gtk4paintablesink` como sink de video
+    /// para integración nativa con GTK.
+    pub fn new() -> Result<Self, String> {
+        gstreamer::init()
+            .map_err(|e| format!("Failed to initialize GStreamer: {}", e))?;
+
+        let playbin = gstreamer::ElementFactory::make("playbin3")
+            .build()
+            .map_err(|e| format!("Failed to create playbin3: {}", e))?;
+
+        // Intentar configurar gtk4paintablesink para integración nativa con GTK4
+        let video_sink = match gstreamer::ElementFactory::make("gtk4paintablesink").build() {
+            Ok(sink) => {
+                playbin.set_property("video-sink", &sink);
+                info!("Usando gtk4paintablesink como sink de video");
+                Some(sink)
+            }
+            Err(_) => {
+                warn!("gtk4paintablesink no disponible, usando sink por defecto");
+                None
+            }
+        };
+
+        // Configurar audio-sink explícitamente para evitar problemas en Flatpak.
+        // autoaudiosink detecta PulseAudio/PipeWire automáticamente.
+        match gstreamer::ElementFactory::make("autoaudiosink").build() {
+            Ok(audio_sink) => {
+                playbin.set_property("audio-sink", &audio_sink);
+                info!("Audio-sink configurado: autoaudiosink");
+            }
+            Err(e) => {
+                warn!("No se pudo crear autoaudiosink: {} — el audio puede no funcionar", e);
+            }
+        }
+
+        let bus = playbin.bus().expect("playbin3 debe tener un bus");
+
+        Ok(Self {
+            playbin,
+            bus,
+            state: std::cell::Cell::new(PlaybackState::Stopped),
+            video_sink,
+        })
+    }
+
+    /// Carga un archivo de video desde una ruta local.
+    pub fn load_file(&self, path: &str) -> Result<(), String> {
+        let uri = format!("file://{}", path);
+        self.playbin.set_property("uri", &uri);
+        info!("Archivo cargado: {}", uri);
+        Ok(())
+    }
+
+    /// Inicia o reanuda la reproducción.
+    pub fn play(&self) -> Result<(), String> {
+        self.playbin
+            .set_state(gstreamer::State::Playing)
+            .map_err(|e| format!("Failed to set Playing state: {}", e))?;
+        self.state.set(PlaybackState::Playing);
+        Ok(())
+    }
+
+    /// Pausa la reproducción.
+    pub fn pause(&self) -> Result<(), String> {
+        self.playbin
+            .set_state(gstreamer::State::Paused)
+            .map_err(|e| format!("Failed to set Paused state: {}", e))?;
+        self.state.set(PlaybackState::Paused);
+        Ok(())
+    }
+
+    /// Alterna entre reproducción y pausa.
+    pub fn toggle_play_pause(&self) -> Result<(), String> {
+        match self.state.get() {
+            PlaybackState::Playing => self.pause(),
+            _ => self.play(),
+        }
+    }
+
+    /// Devuelve el estado actual de reproducción.
+    pub fn state(&self) -> PlaybackState {
+        self.state.get()
+    }
+
+    /// Detiene la reproducción y vuelve al estado Ready.
+    pub fn stop(&self) -> Result<(), String> {
+        self.playbin
+            .set_state(gstreamer::State::Ready)
+            .map_err(|e| format!("Failed to set Ready state: {}", e))?;
+        self.state.set(PlaybackState::Stopped);
+        Ok(())
+    }
+
+    /// Busca a una posición específica en segundos.
+    pub fn seek(&self, seconds: u64) -> Result<(), String> {
+        let position = gstreamer::ClockTime::from_seconds(seconds);
+        self.playbin
+            .seek_simple(
+                gstreamer::SeekFlags::FLUSH | gstreamer::SeekFlags::KEY_UNIT,
+                position,
+            )
+            .map_err(|e| format!("Seek failed: {}", e))?;
+        Ok(())
+    }
+
+    /// Ajusta el volumen de reproducción (0.0 a 1.0).
+    pub fn set_volume(&self, volume: f64) {
+        self.playbin.set_property("volume", volume.clamp(0.0, 1.0));
+    }
+
+    /// Devuelve el volumen actual (0.0 - 1.0).
+    pub fn volume(&self) -> f64 {
+        self.playbin.property::<f64>("volume")
+    }
+
+    /// Devuelve la posición actual de reproducción en segundos, o 0.
+    pub fn position_seconds(&self) -> f64 {
+        self.playbin
+            .query_position::<gstreamer::ClockTime>()
+            .map(|t| t.seconds() as f64)
+            .unwrap_or(0.0)
+    }
+
+    /// Devuelve la duración total del medio en segundos, o 0.
+    pub fn duration_seconds(&self) -> f64 {
+        self.playbin
+            .query_duration::<gstreamer::ClockTime>()
+            .map(|t| t.seconds() as f64)
+            .unwrap_or(0.0)
+    }
+
+    /// Referencia al bus de GStreamer para monitoreo de eventos.
+    pub fn bus(&self) -> &gstreamer::Bus {
+        &self.bus
+    }
+
+    /// Referencia al elemento playbin3.
+    pub fn element(&self) -> &gstreamer::Element {
+        &self.playbin
+    }
+
+    /// Devuelve el Paintable de gtk4paintablesink si está disponible.
+    pub fn video_paintable(&self) -> Option<gdk::Paintable> {
+        self.video_sink
+            .as_ref()
+            .and_then(|sink| sink.property::<Option<gdk::Paintable>>("paintable"))
+    }
+
+    /// Obtiene el número de pistas de subtítulos disponibles.
+    pub fn subtitle_track_count(&self) -> i32 {
+        self.playbin.property::<i32>("n-subtitle")
+    }
+
+    /// Selecciona la pista de subtítulos por índice.
+    pub fn set_subtitle_track(&self, index: i32) {
+        self.playbin.set_property("current-subtitle", index);
+    }
+
+    /// Obtiene el número de pistas de audio disponibles.
+    pub fn audio_track_count(&self) -> i32 {
+        self.playbin.property::<i32>("n-audio")
+    }
+
+    /// Selecciona la pista de audio por índice.
+    pub fn set_audio_track(&self, index: i32) {
+        self.playbin.set_property("current-audio", index);
+    }
+
+    /// Configura la tipografía de los subtítulos usando una descripción de fuente Pango.
+    ///
+    /// Ejemplos: `"Sans 16"`, `"DejaVu Serif Bold 20"`, `"Monospace 14"`.
+    /// La fuente se aplica al elemento `textrender` interno de playbin3.
+    pub fn set_subtitle_font(&self, font_desc: &str) {
+        self.playbin.set_property("subtitle-font-desc", font_desc);
+        info!("Fuente de subtítulos configurada: {}", font_desc);
+    }
+}
+
+impl Drop for PlaybackPipeline {
+    fn drop(&mut self) {
+        if let Err(e) = self.playbin.set_state(gstreamer::State::Null) {
+            error!("Error al detener pipeline en Drop: {}", e);
+        }
+    }
+}

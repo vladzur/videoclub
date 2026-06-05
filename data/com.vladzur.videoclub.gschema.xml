@@ -1,5 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="videoclub">
 	<schema id="com.vladzur.videoclub" path="/com/vladzur/videoclub/">
+		<key name="scan-directories" type="as">
+			<default>[]</default>
+			<summary>Directories to scan for movies</summary>
+			<description>List of directories that the application will scan recursively to find movie files.</description>
+		</key>
+		<key name="omdb-api-key" type="s">
+			<default>""</default>
+			<summary>OMDb API key</summary>
+			<description>API key for OMDb (Open Movie Database) used to fetch movie metadata and posters.</description>
+		</key>
+		<key name="opensubtitles-api-key" type="s">
+			<default>""</default>
+			<summary>OpenSubtitles API key</summary>
+			<description>API key for OpenSubtitles used to search and download subtitles.</description>
+		</key>
+		<key name="preferred-audio-language" type="s">
+			<default>"es"</default>
+			<summary>Preferred audio language</summary>
+			<description>ISO 639-1 language code for the preferred audio track language.</description>
+		</key>
+		<key name="preferred-subtitle-language" type="s">
+			<default>"es"</default>
+			<summary>Preferred subtitle language</summary>
+			<description>ISO 639-1 language code for the preferred subtitle language.</description>
+		</key>
+		<key name="window-width" type="i">
+			<default>1200</default>
+			<summary>Window width</summary>
+			<description>Width of the main application window in pixels.</description>
+		</key>
+		<key name="window-height" type="i">
+			<default>800</default>
+			<summary>Window height</summary>
+			<description>Height of the main application window in pixels.</description>
+		</key>
+		<key name="window-maximized" type="b">
+			<default>false</default>
+			<summary>Window maximized</summary>
+			<description>Whether the main window was maximized in the last session.</description>
+		</key>
+		<key name="subtitle-font-desc" type="s">
+			<default>"Sans 16"</default>
+			<summary>Subtitle font</summary>
+			<description>Pango font description for subtitle rendering (e.g. "Sans 18", "DejaVu Serif Bold 20").</description>
+		</key>
 	</schema>
 </schemalist>

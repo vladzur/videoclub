@@ -2,35 +2,73 @@
  *
  * Copyright 2026 Vladimir Zurita
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use std::cell::{Cell, RefCell};
+
 use gtk::prelude::*;
+
 use adw::subclass::prelude::*;
-use gtk::{gio, glib};
+use adw::prelude::AdwDialogExt;
+use gtk::{gdk, gio, glib};
+
+use videoclub_core::metadata_store::{MetadataStore, StoredMetadata};
+use videoclub_core::movie::MovieObject;
+use crate::player::controller::PlaybackController;
+use crate::widgets::video_widget::VideoWidget;
 
 mod imp {
     use super::*;
 
-    #[derive(Debug, Default, gtk::CompositeTemplate)]
+    #[derive(gtk::CompositeTemplate, Default)]
     #[template(resource = "/com/vladzur/videoclub/window.ui")]
     pub struct VideoclubWindow {
-        // Template widgets
         #[template_child]
-        pub label: TemplateChild<gtk::Label>,
+        pub movie_grid: TemplateChild<gtk::GridView>,
+
+        #[template_child]
+        pub content_stack: TemplateChild<gtk::Stack>,
+
+        #[template_child]
+        pub search_bar: TemplateChild<gtk::SearchBar>,
+
+        #[template_child]
+        pub search_entry: TemplateChild<gtk::SearchEntry>,
+
+        #[template_child]
+        pub search_button: TemplateChild<gtk::ToggleButton>,
+
+        #[template_child]
+        pub navigation_view: TemplateChild<adw::NavigationView>,
+
+        #[template_child]
+        pub add_folder_button: TemplateChild<gtk::Button>,
+
+        #[template_child]
+        pub refresh_button: TemplateChild<gtk::Button>,
+
+        #[template_child]
+        pub empty_add_folder_button: TemplateChild<gtk::Button>,
+
+        /// El ListStore del catálogo (asignado desde la Application).
+        pub catalog_store: RefCell<Option<gio::ListStore>>,
+
+        /// El filtro de texto para la búsqueda.
+        pub string_filter: RefCell<Option<gtk::StringFilter>>,
+
+        /// True mientras se muestran datos de prueba (antes del primer escaneo real).
+        pub showing_test_data: Cell<bool>,
+
+        /// Referencia fuerte a la ventana del reproductor activa (singleton).
+        pub active_video_window: RefCell<Option<gtk::Window>>,
+
+        /// Referencia fuerte al VideoWidget activo.
+        /// Necesaria para que los WeakRef en sus closures no expiren antes de tiempo.
+        pub active_video_widget: RefCell<Option<VideoWidget>>,
+
+        /// Store persistente de metadatos de la biblioteca.
+        pub metadata_store: RefCell<MetadataStore>,
     }
 
     #[glib::object_subclass]
@@ -48,7 +86,18 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for VideoclubWindow {}
+    impl ObjectImpl for VideoclubWindow {
+        fn constructed(&self) {
+            self.parent_constructed();
+            // Cargar el store de metadatos al inicio
+            *self.metadata_store.borrow_mut() = MetadataStore::load();
+            let obj = self.obj();
+            obj.setup_search_bar();
+            obj.setup_video_drop_target();
+            obj.connect_folder_buttons();
+        }
+    }
+
     impl WidgetImpl for VideoclubWindow {}
     impl WindowImpl for VideoclubWindow {}
     impl ApplicationWindowImpl for VideoclubWindow {}
@@ -57,7 +106,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct VideoclubWindow(ObjectSubclass<imp::VideoclubWindow>)
-        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, adw::ApplicationWindow,        @implements gio::ActionGroup, gio::ActionMap;
+        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, adw::ApplicationWindow,
+        @implements gio::ActionGroup, gio::ActionMap;
 }
 
 impl VideoclubWindow {
@@ -66,4 +116,641 @@ impl VideoclubWindow {
             .property("application", application)
             .build()
     }
+
+    // ─── Catálogo ────────────────────────────────────────────────────────────
+
+    /// Asigna el ListStore del catálogo y conecta la grilla.
+    /// Llamado desde `VideoclubApplication::activate()`.
+    pub fn set_catalog_store(&self, store: &gio::ListStore, is_test_data: bool) {
+        let imp = self.imp();
+        imp.catalog_store.replace(Some(store.clone()));
+        imp.showing_test_data.set(is_test_data);
+
+        // Filtro de texto sobre la propiedad "title"
+        let title_expr = gtk::PropertyExpression::new(
+            MovieObject::static_type(),
+            None::<&gtk::Expression>,
+            "title",
+        );
+        let filter = gtk::StringFilter::new(Some(title_expr));
+        filter.set_match_mode(gtk::StringFilterMatchMode::Substring);
+        filter.set_ignore_case(true);
+        imp.string_filter.replace(Some(filter.clone()));
+
+        // Cadena: ListStore → FilterListModel → SingleSelection → GridView
+        let filter_model = gtk::FilterListModel::new(
+            Some(store.clone()),
+            Some(filter),
+        );
+        let selection = gtk::SingleSelection::new(Some(filter_model));
+        imp.movie_grid.set_model(Some(&selection));
+
+        // Fábrica de PosterCards
+        self.setup_factory();
+
+        // Señal de activación (clic en tarjeta)
+        imp.movie_grid.connect_activate(glib::clone!(
+            #[weak(rename_to = win)] self,
+            move |grid, pos| {
+                let model = grid.model().unwrap();
+                if let Some(obj) = model.item(pos) {
+                    if let Ok(movie) = obj.downcast::<MovieObject>() {
+                        win.open_player(&movie);
+                    }
+                }
+            }
+        ));
+
+        self.update_content_stack();
+    }
+
+    /// Actualiza el stack según si hay películas o no.
+    pub fn update_content_stack(&self) {
+        let imp = self.imp();
+        let has_items = imp.catalog_store.borrow()
+            .as_ref()
+            .map(|s| s.n_items() > 0)
+            .unwrap_or(false);
+
+        imp.content_stack.set_visible_child_name(if has_items { "catalog" } else { "empty" });
+    }
+
+    // ─── Fábrica de tarjetas ──────────────────────────────────────────────────
+
+    fn setup_factory(&self) {
+        let imp = self.imp();
+
+        let factory = gtk::SignalListItemFactory::new();
+
+        // setup: crear el widget vacío
+        factory.connect_setup(|_, list_item| {
+            let item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+            let card = crate::widgets::poster_card::PosterCard::new();
+            item.set_child(Some(&card));
+        });
+
+        // bind: vincular MovieObject a la PosterCard y añadir right-click
+        factory.connect_bind(glib::clone!(
+            #[weak(rename_to = win)] self,
+            move |_, list_item| {
+                let item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+                let movie = item.item()
+                    .and_downcast::<MovieObject>()
+                    .expect("El item debe ser MovieObject");
+                let card = item.child()
+                    .and_downcast::<crate::widgets::poster_card::PosterCard>()
+                    .expect("El child debe ser PosterCard");
+                card.bind(&movie);
+
+                // Gesto de click secundario (right-click) → menú contextual
+                let gesture = gtk::GestureClick::new();
+                gesture.set_button(3);
+                gesture.connect_released(glib::clone!(
+                    #[weak] win,
+                    #[weak] movie,
+                    #[weak] card,
+                    move |gesture, _, x, y| {
+                        gesture.set_state(gtk::EventSequenceState::Claimed);
+                        win.show_movie_context_menu(&movie, &card, x, y);
+                    }
+                ));
+                card.add_controller(gesture);
+            }
+        ));
+
+        // unbind: limpiar bindings al reciclar la celda
+        factory.connect_unbind(|_, list_item| {
+            let item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+            if let Some(card) = item.child().and_downcast::<crate::widgets::poster_card::PosterCard>() {
+                card.unbind();
+            }
+        });
+
+        imp.movie_grid.set_factory(Some(&factory));
+    }
+
+    /// Muestra el menú contextual (click derecho) sobre la tarjeta de una película.
+    fn show_movie_context_menu(
+        &self,
+        movie: &MovieObject,
+        card: &crate::widgets::poster_card::PosterCard,
+        x: f64,
+        y: f64,
+    ) {
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        vbox.set_margin_top(4);
+        vbox.set_margin_bottom(4);
+        vbox.set_margin_start(4);
+        vbox.set_margin_end(4);
+
+        let edit_btn = gtk::Button::new();
+        let edit_label = gtk::Label::new(Some("Edit Metadata"));
+        edit_label.set_halign(gtk::Align::Start);
+        edit_btn.set_child(Some(&edit_label));
+        edit_btn.set_has_frame(false);
+
+        let popover = gtk::Popover::new();
+        popover.set_child(Some(&vbox));
+        popover.set_parent(card);
+        popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+
+        edit_btn.connect_clicked(glib::clone!(
+            #[weak(rename_to = win)] self,
+            #[weak] movie,
+            #[weak] popover,
+            move |_| {
+                popover.popdown();
+                win.open_edit_movie_dialog(&movie);
+            }
+        ));
+
+        vbox.append(&edit_btn);
+        popover.popup();
+    }
+
+    /// Abre el diálog de edición de metadatos para una película.
+    fn open_edit_movie_dialog(&self, movie: &MovieObject) {
+        let dialog = crate::edit_movie_dialog::build_edit_movie_dialog(
+            movie,
+            self,
+        );
+        dialog.present(Some(self));
+    }
+
+    // ─── Reproductor ─────────────────────────────────────────────────────────
+
+    /// Abre el reproductor (singleton). Cierra el anterior si ya hay uno abierto.
+    fn open_player(&self, movie: &MovieObject) {
+        let path = movie.video_path();
+        if path.is_empty() {
+            log::warn!("La película '{}' no tiene ruta de video", movie.title());
+            return;
+        }
+
+        // ── Singleton: cerrar reproductor anterior si existe ────────────────
+        // IMPORTANTE: clonar el ref fuera del borrow ANTES de llamar close(),
+        // porque close() dispara close-request sincrónicamente y ese handler
+        // necesita borrow_mut() sobre el mismo RefCell.
+        let existing = self.imp().active_video_window.borrow().clone();
+        if let Some(win) = existing {
+            win.close();
+        }
+
+        let controller = match PlaybackController::new() {
+            Ok(c) => c,
+            Err(e) => { log::error!("PlaybackController: {}", e); return; }
+        };
+        if let Err(e) = controller.load(&path) {
+            log::error!("Error cargando '{}': {}", path, e); return;
+        }
+
+        // Aplicar la fuente de subtítulos configurada en Preferencias
+        if let Some(app) = self.application() {
+            if let Ok(app) = app.downcast::<crate::application::VideoclubApplication>() {
+                let font = app.imp().settings.subtitle_font_desc();
+                controller.set_subtitle_font(&font);
+            }
+        }
+
+        let video_widget = VideoWidget::new();
+        video_widget.set_hexpand(true);
+        video_widget.set_vexpand(true);
+        let _ = controller.play();
+        video_widget.setup_player(controller);
+
+        // ── adw::Window: integración correcta con libadwaita ──────────────────
+        // gtk::Window + AdwHeaderBar = doble frame (CSD propio del WM + AdwHeaderBar)
+        // adw::Window = sin doble frame; AdwToolbarView/AdwHeaderBar integran nativamente
+        // La referencia fuerte en active_video_window mantiene viva la ventana.
+        let video_window = adw::Window::builder()
+            .title(movie.title())
+            .default_width(1280)
+            .default_height(720)
+            .content(&video_widget)
+            .build();
+
+        // Pasar referencia al widget para que el botón fullscreen funcione
+        video_widget.set_player_window(video_window.upcast_ref::<gtk::Window>());
+
+        // Guardar referencias fuertes (ventana + widget) para mantenerlos vivos
+        self.imp().active_video_window.replace(Some(video_window.clone().upcast::<gtk::Window>()));
+        self.imp().active_video_widget.replace(Some(video_widget.clone()));
+
+        // Detener pipeline y limpiar referencias al cerrar
+        video_window.connect_close_request(glib::clone!(
+            #[weak] video_widget,
+            #[weak(rename_to = catalog)] self,
+            #[upgrade_or] glib::Propagation::Proceed,
+            move |_| {
+                video_widget.stop_playback();         // ← detener GStreamer
+                video_widget.clear_player_window();   // ← romper ciclo de referencia
+                catalog.imp().active_video_widget.replace(None);
+                catalog.imp().active_video_window.replace(None);
+                glib::Propagation::Proceed
+            }
+        ));
+
+        // Conectar botón fullscreen directamente con referencia fuerte a video_window
+        video_widget.imp().fullscreen_button.connect_clicked(glib::clone!(
+            #[strong] video_window,
+            #[weak] video_widget,
+            move |_| {
+                if video_window.is_fullscreen() {
+                    video_window.unfullscreen();
+                } else {
+                    video_window.fullscreen();
+                }
+                video_widget.update_fullscreen_icon();
+            }
+        ));
+
+        // Sincronizar icono cuando el WM confirma el cambio de fullscreen
+        video_window.connect_notify_local(
+            Some("fullscreened"),
+            glib::clone!(
+                #[weak] video_widget,
+                move |_, _| { video_widget.update_fullscreen_icon(); }
+            ),
+        );
+
+        // Atajo F11
+        let key_ctrl = gtk::EventControllerKey::new();
+        key_ctrl.connect_key_pressed(glib::clone!(
+            #[strong] video_window,
+            move |_, key, _, _| {
+                if key == gtk::gdk::Key::F11 {
+                    if video_window.is_fullscreen() { video_window.unfullscreen(); }
+                    else { video_window.fullscreen(); }
+                    return glib::Propagation::Stop;
+                }
+                if key == gtk::gdk::Key::Escape && video_window.is_fullscreen() {
+                    video_window.unfullscreen();
+                    return glib::Propagation::Stop;
+                }
+                glib::Propagation::Proceed
+            }
+        ));
+        video_window.add_controller(key_ctrl);
+
+        // Motion controller en la VENTANA (no en widgets hijos):
+        // adw::Window recibe TODOS los eventos de mouse sin importar qué widget está encima.
+        // GtkOverlay con overlaid children bloquea eventos al overlay, por eso se conecta aquí.
+        let motion_ctrl = gtk::EventControllerMotion::new();
+        motion_ctrl.connect_motion(glib::clone!(
+            #[weak] video_widget,
+            move |_, x, y| {
+                video_widget.on_pointer_motion(x, y);
+            }
+        ));
+        video_window.add_controller(motion_ctrl);
+
+        video_window.present();
+    }
+
+    /// Carga y reproduce un archivo de video directamente (desde drag-and-drop).
+    pub fn load_video(&self, path: &str) {
+        // Crear MovieObject temporal para reutilizar open_player
+        let movie = MovieObject::from_video_path(path);
+        self.open_player(&movie);
+    }
+
+    // ─── Búsqueda ─────────────────────────────────────────────────────────────
+
+    fn setup_search_bar(&self) {
+        let imp = self.imp();
+
+        let search_button = (*imp.search_button).clone();
+        let search_bar_clone = (*imp.search_bar).clone();
+
+        // Vincular el ToggleButton al SearchBar
+        imp.search_bar.connect_search_mode_enabled_notify(
+            glib::clone!(
+                #[weak] search_button,
+                move |bar| {
+                    search_button.set_active(bar.is_search_mode());
+                }
+            )
+        );
+        imp.search_button.connect_toggled(
+            glib::clone!(
+                #[weak] search_bar_clone,
+                move |btn| {
+                    search_bar_clone.set_search_mode(btn.is_active());
+                }
+            )
+        );
+
+        // Conectar el SearchEntry al filtro
+        imp.search_entry.connect_search_changed(
+            glib::clone!(
+                #[weak(rename_to = win)] self,
+                move |entry| {
+                    let imp = win.imp();
+                    let text = entry.text().to_string();
+                    let borrowed = imp.string_filter.borrow();
+                    if let Some(filter) = borrowed.as_ref() {
+                        filter.set_search(Some(&text));
+                    }
+                }
+            )
+        );
+    }
+
+    // ─── Escaneo de directorios ───────────────────────────────────────────────
+
+    fn connect_folder_buttons(&self) {
+        // Botón en la cabecera
+        self.imp().add_folder_button.connect_clicked(
+            glib::clone!(#[weak(rename_to = win)] self, move |_| win.pick_folder())
+        );
+        // Botón en la pantalla vacía
+        self.imp().empty_add_folder_button.connect_clicked(
+            glib::clone!(#[weak(rename_to = win)] self, move |_| win.pick_folder())
+        );
+        // Botón de refresh: re-escanear biblioteca completa
+        self.imp().refresh_button.connect_clicked(
+            glib::clone!(#[weak(rename_to = win)] self, move |_| win.refresh_library())
+        );
+    }
+
+    /// Re-escanea todos los directorios guardados en GSettings.
+    /// Limpia el catálogo actual antes de empezar.
+    fn refresh_library(&self) {
+        let imp = self.imp();
+
+        // Limpiar catálogo actual
+        if let Some(store) = imp.catalog_store.borrow().as_ref() {
+            store.remove_all();
+        }
+        imp.showing_test_data.set(false);
+        self.update_content_stack();
+
+        // Obtener directorios guardados
+        let dirs = match self.application()
+            .and_downcast::<crate::application::VideoclubApplication>()
+        {
+            Some(app) => app.imp().settings.scan_directories(),
+            None => return,
+        };
+
+        if dirs.is_empty() {
+            log::info!("Refresh: no hay directorios configurados");
+            return;
+        }
+
+        log::info!("Refresh: re-escaneando {} directorio(s)", dirs.len());
+        for dir in dirs {
+            self.scan_directory(dir);
+        }
+    }
+
+    /// Abre el diálogo de carpeta y escanea en un hilo.
+    fn pick_folder(&self) {
+        let dialog = gtk::FileDialog::new();
+        dialog.set_title("Select Movie Folder");
+
+        dialog.select_folder(
+            Some(self),
+            None::<&gio::Cancellable>,
+            glib::clone!(
+                #[weak(rename_to = win)] self,
+                move |result| {
+                    if let Ok(file) = result {
+                        if let Some(path) = file.path() {
+                            win.scan_directory(path.to_string_lossy().into_owned());
+                        }
+                    }
+                }
+            ),
+        );
+    }
+
+    /// Escanea un directorio en un hilo separado y agrega los resultados al catálogo.
+    /// También guarda la ruta en GSettings para recordarla entre sesiones.
+    pub(crate) fn scan_directory(&self, path: String) {
+        log::info!("Escaneando directorio: {}", path);
+        let imp = self.imp();
+
+        // Si se estaban mostrando datos de prueba, limpiar el catálogo
+        if imp.showing_test_data.get() {
+            if let Some(store) = imp.catalog_store.borrow().as_ref() {
+                store.remove_all();
+            }
+            imp.showing_test_data.set(false);
+        }
+
+        // Persistir el directorio en GSettings para re-escanearlo al arrancar
+        if let Some(app) = self.application()
+            .and_downcast::<crate::application::VideoclubApplication>()
+        {
+            app.imp().settings.add_scan_directory(&path);
+            log::info!("Directorio guardado en GSettings: {}", path);
+        }
+
+        let (sender, receiver) = async_channel::bounded::<String>(32);
+
+        // Escaneo en hilo nativo para no bloquear la UI
+        std::thread::spawn(move || {
+            use videoclub_core::scanner;
+            for file_path in scanner::scan_directory(&path) {
+                if sender.send_blocking(file_path).is_err() {
+                    break;
+                }
+            }
+        });
+
+        // Recibir resultados en el contexto principal de glib,
+        // luego lanzar el enriquecimiento de metadatos
+        glib::spawn_future_local(glib::clone!(
+            #[weak(rename_to = win)] self,
+            async move {
+                // Películas que necesitan enriquecimiento (sin metadatos en store)
+                let mut to_enrich: Vec<MovieObject> = Vec::new();
+
+                while let Ok(file_path) = receiver.recv().await {
+                    let imp = win.imp();
+                    if let Some(catalog) = imp.catalog_store.borrow().as_ref() {
+                        let movie = MovieObject::from_video_path(&file_path);
+
+                        // Precargar desde el store si hay metadatos guardados
+                        let has_stored = {
+                            let store = imp.metadata_store.borrow();
+                            if let Some(stored) = store.get(&file_path) {
+                                win.apply_stored_to_movie(&movie, stored);
+                                stored.has_metadata
+                            } else {
+                                false
+                            }
+                        };
+
+                        catalog.append(&movie);
+                        if !has_stored {
+                            to_enrich.push(movie);
+                        }
+                    }
+                    win.update_content_stack();
+                }
+
+                // Escaneo terminado → enriquecer solo las películas sin metadatos
+                if !to_enrich.is_empty() {
+                    win.enrich_all_movies(to_enrich);
+                }
+            }
+        ));
+    }
+
+    /// Aplica un `StoredMetadata` al `MovieObject` correspondiente.
+    fn apply_stored_to_movie(&self, movie: &MovieObject, stored: &StoredMetadata) {
+        if let Some(title) = &stored.title {
+            movie.set_title(title.as_str());
+        }
+        if let Some(year) = stored.year {
+            movie.set_year(year);
+        }
+        if let Some(synopsis) = &stored.synopsis {
+            movie.set_synopsis(synopsis.as_str());
+        }
+        if let Some(poster) = &stored.poster_path {
+            movie.set_poster_path(poster.clone());
+        }
+        if let Some(id) = &stored.imdb_id {
+            movie.set_imdb_id(id.as_str());
+        }
+        movie.set_has_metadata(stored.has_metadata);
+    }
+
+    /// Busca en el catálogo el MovieObject con la ruta de video dada.
+    fn find_movie_by_path(&self, video_path: &str) -> Option<MovieObject> {
+        let imp = self.imp();
+        let borrowed = imp.catalog_store.borrow();
+        let store = borrowed.as_ref()?;
+        let n = store.n_items();
+        for i in 0..n {
+            if let Some(movie) = store.item(i).and_downcast::<MovieObject>() {
+                if movie.video_path() == video_path {
+                    return Some(movie);
+                }
+            }
+        }
+        None
+    }
+
+    /// Lanza el enriquecimiento de metadatos de una lista de películas usando tokio + OMDb.
+    fn enrich_all_movies(&self, movies: Vec<MovieObject>) {
+        let app = self.application()
+            .and_downcast::<crate::application::VideoclubApplication>();
+        let api_key = app.as_ref()
+            .map(|a| a.omdb_api_key())
+            .unwrap_or_default();
+        let opensubs_key = app
+            .map(|a| a.opensubtitles_api_key())
+            .unwrap_or_default();
+
+        if api_key.is_empty() {
+            log::info!("Sin API key de OMDb configurada, omitiendo enriquecimiento");
+            return;
+        }
+
+        log::info!("Enriqueciendo {} películas con OMDb...", movies.len());
+
+        // Extraer datos del store para cada película (overrides de búsqueda)
+        let stored_map: Vec<(String, Option<StoredMetadata>)> = movies.iter()
+            .map(|m| {
+                let path = m.video_path();
+                let stored = self.imp().metadata_store.borrow().get(&path).cloned();
+                (path, stored)
+            })
+            .collect();
+
+        // Canal: el thread envía el StoredMetadata completo al hilo principal
+        type EnrichResult = (String, StoredMetadata);
+        let (tx, rx) = async_channel::bounded::<EnrichResult>(16);
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let Ok(rt) = rt else {
+            log::error!("No se pudo crear runtime tokio");
+            return;
+        };
+
+        std::thread::spawn(move || {
+            rt.block_on(async move {
+                use videoclub_core::enricher::MovieEnricher;
+                use videoclub_core::omdb::OmdbClient;
+                use videoclub_core::subtitles::SubtitlesClient;
+
+                let omdb = match OmdbClient::new(api_key) {
+                    Ok(c) => c,
+                    Err(e) => { log::error!("Error al inicializar OMDb: {}", e); return; }
+                };
+                let subtitles = match SubtitlesClient::new(opensubs_key) {
+                    Ok(s) => s,
+                    Err(e) => { log::warn!("Error al crear SubtitlesClient: {}", e); return; }
+                };
+                let enricher = match MovieEnricher::new(omdb, subtitles) {
+                    Ok(e) => e,
+                    Err(e) => { log::error!("Error al crear MovieEnricher: {}", e); return; }
+                };
+
+                for (video_path, stored) in &stored_map {
+                    let tmp_movie = MovieObject::from_video_path(video_path);
+                    let result = enricher
+                        .enrich_metadata(&tmp_movie, stored.as_ref())
+                        .await
+                        .unwrap_or_else(|e| {
+                            log::warn!("Error enriqueciendo '{}': {}", video_path, e);
+                            StoredMetadata::new_pending("unknown", None)
+                        });
+                    if tx.send((video_path.clone(), result)).await.is_err() {
+                        break;
+                    }
+                }
+            });
+        });
+
+        // Recibir resultados, actualizar MovieObjects y persistir en el store
+        glib::spawn_future_local(glib::clone!(
+            #[weak(rename_to = win)] self,
+            async move {
+                while let Ok((video_path, stored)) = rx.recv().await {
+                    // Actualizar el MovieObject real en el catálogo
+                    if let Some(movie) = win.find_movie_by_path(&video_path) {
+                        win.apply_stored_to_movie(&movie, &stored);
+                    }
+                    // Guardar en el store
+                    win.imp().metadata_store.borrow_mut().upsert(&video_path, stored);
+                }
+                // Persistir store al disco al finalizar el lote
+                win.imp().metadata_store.borrow().save();
+                log::info!("Enriquecimiento completado y store guardado");
+            }
+        ));
+    }
+
+    /// Re-enriquece una sola película (llamado desde el EditMovieDialog).
+    pub fn enrich_single_movie(&self, movie: &MovieObject) {
+        self.enrich_all_movies(vec![movie.clone()]);
+    }
+
+    // ─── Drag-and-Drop ────────────────────────────────────────────────────────
+
+    fn setup_video_drop_target(&self) {
+        let drop_target = gtk::DropTarget::new(gio::File::static_type(), gdk::DragAction::COPY);
+        drop_target.connect_drop(glib::clone!(
+            #[weak(rename_to = win)] self,
+            #[upgrade_or] false,
+            move |_target, value, _x, _y| {
+                if let Ok(file) = value.get::<gio::File>() {
+                    if let Some(path) = file.path() {
+                        win.load_video(path.to_string_lossy().as_ref());
+                        return true;
+                    }
+                }
+                false
+            }
+        ));
+        self.add_controller(drop_target);
+    }
 }
+

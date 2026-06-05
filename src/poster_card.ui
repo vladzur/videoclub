@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="Adw" version="1.0"/>
+  <template class="VideoclubPosterCard" parent="GtkWidget">
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <style>
+          <class name="poster-card"/>
+        </style>
+        <child>
+          <!-- Área del póster con proporción 2:3 (estándar de póster de cine) -->
+          <object class="GtkAspectFrame">
+            <property name="ratio">0.6667</property>
+            <property name="obey-child">false</property>
+            <property name="hexpand">true</property>
+            <style>
+              <class name="poster-frame"/>
+            </style>
+            <child>
+              <object class="GtkPicture" id="picture">
+                <property name="content-fit">cover</property>
+                <property name="can-shrink">true</property>
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
+                <style>
+                  <class name="poster"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <!-- Título y año -->
+          <object class="GtkBox">
+            <property name="spacing">6</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
+            <child>
+              <object class="GtkLabel" id="title_label">
+                <property name="ellipsize">end</property>
+                <property name="max-width-chars">20</property>
+                <property name="halign">start</property>
+                <property name="hexpand">true</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="year_label">
+                <property name="halign">end</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <!-- Badge de subtítulos -->
+              <object class="GtkImage" id="subtitle_badge">
+                <property name="icon-name">application-x-subrip-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Subtitles available</property>
+                <property name="visible">false</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

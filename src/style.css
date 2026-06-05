@@ -1,0 +1,47 @@
+/* style.css
+ *
+ * Estilos CSS para la aplicación Videoclub.
+ * Se cargan en el ApplicationImpl::startup().
+ */
+
+/* Tarjeta de película en la grilla */
+.poster-card {
+    border-radius: 8px;
+    transition: transform 150ms ease-in-out;
+}
+
+.poster-card:hover {
+    transform: scale(1.02);
+}
+
+/* Contenedor proporcional 2:3 del póster */
+.poster-frame {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    min-width: 160px;
+    min-height: 240px;
+    background-color: @card_bg_color;
+}
+
+/* Imagen del póster (rellena el frame exactamente) */
+.poster {
+    border-radius: 8px;
+}
+
+/* Controles flotantes del reproductor */
+.video-controls {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    padding: 12px;
+    border-radius: 0 0 8px 8px;
+}
+
+/* Barra de progreso del video */
+.video-progress trough {
+    min-height: 4px;
+    border-radius: 2px;
+}
+
+.video-progress highlight {
+    background-color: @accent_bg_color;
+    border-radius: 2px;
+}

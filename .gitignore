@@ -17,3 +17,7 @@ Cargo.lock
 # Flatpak
 .flatpak-builder/
 build-dir/
+
+# Variables de entorno locales (contienen claves de API)
+# El archivo .env.example SÍ se versiona como plantilla
+.env
