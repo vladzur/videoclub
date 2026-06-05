@@ -1,0 +1,19 @@
+# Rust build artifacts
+/target/
+
+# Meson build directory
+/_build/
+
+# Cargo
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Flatpak
+.flatpak-builder/
+build-dir/
