@@ -60,6 +60,10 @@ mod imp {
         /// True mientras se muestran datos de prueba (antes del primer escaneo real).
         pub showing_test_data: Cell<bool>,
 
+        /// Si es true, se lanza enrich_all_movies al terminar scan_directory.
+        /// Activado por Refresh y Add Folder. Desactivado por defecto (no fetch al iniciar).
+        pub enrich_after_scan: Cell<bool>,
+
         /// Referencia fuerte a la ventana del reproductor activa (singleton).
         pub active_video_window: RefCell<Option<gtk::Window>>,
 
@@ -499,6 +503,7 @@ impl VideoclubWindow {
         }
 
         log::info!("Refresh: re-escaneando {} directorio(s)", dirs.len());
+        self.imp().enrich_after_scan.set(true);
         for dir in dirs {
             self.scan_directory(dir);
         }
@@ -517,6 +522,7 @@ impl VideoclubWindow {
                 move |result| {
                     if let Ok(file) = result {
                         if let Some(path) = file.path() {
+                            win.imp().enrich_after_scan.set(true);
                             win.scan_directory(path.to_string_lossy().into_owned());
                         }
                     }
@@ -584,17 +590,18 @@ impl VideoclubWindow {
                         };
 
                         catalog.append(&movie);
-                        if !has_stored {
+                        if !has_stored && imp.enrich_after_scan.get() {
                             to_enrich.push(movie);
                         }
                     }
                     win.update_content_stack();
                 }
 
-                // Escaneo terminado → enriquecer solo las películas sin metadatos
+                // Escaneo terminado → enriquecer solo si el flag está activo
                 if !to_enrich.is_empty() {
                     win.enrich_all_movies(to_enrich);
                 }
+                win.imp().enrich_after_scan.set(false);
             }
         ));
     }

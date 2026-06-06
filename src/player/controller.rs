@@ -7,20 +7,27 @@
 use std::rc::Rc;
 use gtk::gdk;
 
+use super::inhibit::ScreensaverInhibitor;
 use super::pipeline::PlaybackPipeline;
 use super::events::PlaybackState;
 
 /// Controlador de reproducción de alto nivel.
 ///
 /// Proporciona una API ergonómica sobre `PlaybackPipeline`.
+/// También gestiona la inhibición del screensaver vía D-Bus.
 pub struct PlaybackController {
     pipeline: Rc<PlaybackPipeline>,
+    /// Inhibidor de screensaver: se activa en `play()` y se libera en `stop()`.
+    inhibitor: std::cell::RefCell<ScreensaverInhibitor>,
 }
 
 impl PlaybackController {
     pub fn new() -> Result<Self, String> {
         let pipeline = Rc::new(PlaybackPipeline::new()?);
-        Ok(Self { pipeline })
+        Ok(Self {
+            pipeline,
+            inhibitor: std::cell::RefCell::new(ScreensaverInhibitor::new()),
+        })
     }
 
     /// Devuelve el GdkPaintable del video si gtk4paintablesink está disponible.
@@ -33,8 +40,9 @@ impl PlaybackController {
         self.pipeline.load_file(path)
     }
 
-    /// Inicia la reproducción.
+    /// Inicia la reproducción. También inhibe el screensaver vía D-Bus.
     pub fn play(&self) -> Result<(), String> {
+        self.inhibitor.borrow_mut().inhibit();
         self.pipeline.play()
     }
 
@@ -53,8 +61,9 @@ impl PlaybackController {
         self.pipeline.state()
     }
 
-    /// Detiene la reproducción.
+    /// Detiene la reproducción y libera la inhibición del screensaver.
     pub fn stop(&self) -> Result<(), String> {
+        self.inhibitor.borrow_mut().uninhibit();
         self.pipeline.stop()
     }
 

@@ -8,3 +8,4 @@ pub mod events;
 pub mod pipeline;
 pub mod bus;
 pub mod controller;
+pub mod inhibit;
