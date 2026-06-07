@@ -11,6 +11,7 @@ use gtk::prelude::*;
 use gtk::glib;
 use adw::prelude::*;
 use glib::subclass::prelude::*;
+use gettextrs::gettext;
 
 use videoclub_core::movie::MovieObject;
 use videoclub_core::settings::AppSettings;
@@ -37,7 +38,7 @@ pub fn build_edit_movie_dialog(
     window: &VideoclubWindow,
 ) -> adw::Dialog {
     let dialog = adw::Dialog::new();
-    dialog.set_title(&format!("Edit — {}", movie.title()));
+    dialog.set_title(&gettext("Edit — {}").replace("{}", &movie.title()));
     dialog.set_content_width(480);
 
     // ── Contenido principal ───────────────────────────────────────────────
@@ -53,7 +54,7 @@ pub fn build_edit_movie_dialog(
 
     // ── Grupo: información del archivo ───────────────────────────────────────
     let file_group = adw::PreferencesGroup::new();
-    file_group.set_title("File Info");
+    file_group.set_title(&gettext("File Info"));
 
     // Nombre real del archivo de video
     let video_path = movie.video_path();
@@ -62,7 +63,7 @@ pub fn build_edit_movie_dialog(
         .and_then(|f| f.to_str())
         .unwrap_or("—");
     let filename_row = adw::ActionRow::new();
-    filename_row.set_title("Video File");
+    filename_row.set_title(&gettext("Video File"));
     let filename_label = gtk::Label::new(Some(video_filename));
     filename_label.set_selectable(true);
     filename_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
@@ -73,7 +74,7 @@ pub fn build_edit_movie_dialog(
     // Archivo de subtítulos (si existe)
     let sub_info = resolve_subtitle_file(&video_path);
     let subtitle_row = adw::ActionRow::new();
-    subtitle_row.set_title("Subtitles");
+    subtitle_row.set_title(&gettext("Subtitles"));
     let subtitle_label = gtk::Label::new(Some(&sub_info));
     subtitle_label.set_selectable(true);
     subtitle_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
@@ -82,7 +83,7 @@ pub fn build_edit_movie_dialog(
     file_group.add(&subtitle_row);
 
     // Botón para descargar subtítulos
-    let download_subs_btn = gtk::Button::with_label("Download Subtitles");
+    let download_subs_btn = gtk::Button::with_label(&gettext("Download Subtitles"));
     download_subs_btn.set_halign(gtk::Align::End);
     download_subs_btn.set_margin_top(4);
     download_subs_btn.set_sensitive(!movie.subtitles_ready());
@@ -98,25 +99,25 @@ pub fn build_edit_movie_dialog(
 
     // ── Grupo: parámetros de búsqueda ─────────────────────────────────────
     let search_group = adw::PreferencesGroup::new();
-    search_group.set_title("Search Parameters");
+    search_group.set_title(&gettext("Search Parameters"));
     search_group.set_description(
-        Some("These values are sent to OMDb. Edit them to refine the search.")
+        Some(&gettext("These values are sent to OMDb. Edit them to refine the search."))
     );
 
     let search_title_row = adw::EntryRow::new();
-    search_title_row.set_title("Search Title");
+    search_title_row.set_title(&gettext("Search Title"));
     search_title_row.set_text(&movie.title());
     search_group.add(&search_title_row);
 
     let search_year_row = adw::EntryRow::new();
-    search_year_row.set_title("Search Year");
+    search_year_row.set_title(&gettext("Search Year"));
     if movie.year() > 0 {
         search_year_row.set_text(&movie.year().to_string());
     }
     search_group.add(&search_year_row);
 
     // Botón "Fetch from OMDb"
-    let fetch_btn = gtk::Button::with_label("Fetch from OMDb");
+    let fetch_btn = gtk::Button::with_label(&gettext("Fetch from OMDb"));
     fetch_btn.set_halign(gtk::Align::End);
     fetch_btn.add_css_class("suggested-action");
     fetch_btn.set_margin_top(8);
@@ -132,31 +133,31 @@ pub fn build_edit_movie_dialog(
 
     // ── Grupo: metadatos almacenados ──────────────────────────────────────
     let meta_group = adw::PreferencesGroup::new();
-    meta_group.set_title("Stored Metadata");
+    meta_group.set_title(&gettext("Stored Metadata"));
     meta_group.set_description(
-        Some("Editable directly. Press Save to persist without re-fetching.")
+        Some(&gettext("Editable directly. Press Save to persist without re-fetching."))
     );
 
     let title_row = adw::EntryRow::new();
-    title_row.set_title("Title");
+    title_row.set_title(&gettext("Title"));
     title_row.set_text(&movie.title());
     meta_group.add(&title_row);
 
     let year_row = adw::EntryRow::new();
-    year_row.set_title("Year");
+    year_row.set_title(&gettext("Year"));
     if movie.year() > 0 {
         year_row.set_text(&movie.year().to_string());
     }
     meta_group.add(&year_row);
 
     let synopsis_row = adw::EntryRow::new();
-    synopsis_row.set_title("Synopsis");
+    synopsis_row.set_title(&gettext("Synopsis"));
     synopsis_row.set_text(&movie.synopsis());
     meta_group.add(&synopsis_row);
 
     // IMDb ID (solo lectura para referencia)
     let imdb_row = adw::ActionRow::new();
-    imdb_row.set_title("IMDb ID");
+    imdb_row.set_title(&gettext("IMDb ID"));
     let imdb_value = gtk::Label::new(Some(&movie.imdb_id()));
     imdb_value.add_css_class("dim-label");
     imdb_row.add_suffix(&imdb_value);
@@ -169,8 +170,8 @@ pub fn build_edit_movie_dialog(
     btn_row.set_halign(gtk::Align::End);
     btn_row.set_margin_top(16);
 
-    let cancel_btn = gtk::Button::with_label("Cancel");
-    let save_btn = gtk::Button::with_label("Save");
+    let cancel_btn = gtk::Button::with_label(&gettext("Cancel"));
+    let save_btn = gtk::Button::with_label(&gettext("Save"));
     save_btn.add_css_class("suggested-action");
 
     btn_row.append(&cancel_btn);
@@ -258,7 +259,7 @@ pub fn build_edit_movie_dialog(
         #[weak] subtitle_label,
         move |_| {
             download_subs_btn.set_sensitive(false);
-            download_subs_btn.set_label("Downloading...");
+            download_subs_btn.set_label(&gettext("Downloading…"));
 
             window.download_subtitles_single(&movie, glib::clone!(
                 #[weak] movie,
@@ -272,9 +273,9 @@ pub fn build_edit_movie_dialog(
                         subtitle_label.remove_css_class("dim-label");
                         subtitle_label.add_css_class("accent");
                         download_subs_btn.set_sensitive(false);
-                        download_subs_btn.set_label("Downloaded ✓");
+                        download_subs_btn.set_label(&gettext("Downloaded ✓"));
                     } else {
-                        download_subs_btn.set_label("Retry");
+                        download_subs_btn.set_label(&gettext("Retry"));
                         download_subs_btn.set_sensitive(true);
                     }
                 }
@@ -363,5 +364,5 @@ fn resolve_subtitle_file(video_path: &str) -> String {
         }
     }
 
-    "Not available".to_string()
+    gettext("Not available")
 }

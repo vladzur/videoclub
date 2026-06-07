@@ -1,0 +1,413 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-06 21:23-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/window.ui:6 src/window.ui:75
+msgid "Videoclub"
+msgstr "Videoclub"
+
+#: src/window.ui:18
+msgid "Search movies"
+msgstr "Filme suchen"
+
+#: src/window.ui:26
+msgid "Main Menu"
+msgstr "Hauptmenü"
+
+#: src/window.ui:34
+msgid "Add movie folder"
+msgstr "Filmordner hinzufügen"
+
+#: src/window.ui:41
+msgid "Refresh library"
+msgstr "Bibliothek aktualisieren"
+
+#: src/window.ui:48
+msgid "Preferences"
+msgstr "Einstellungen"
+
+#: src/window.ui:63
+msgid "Search movies…"
+msgstr "Filme suchen…"
+
+#: src/window.ui:87
+msgid "No Movies Found"
+msgstr "Keine Filme gefunden"
+
+#: src/window.ui:88
+msgid "Add a folder with your movie collection to get started."
+msgstr "Füge einen Ordner mit deiner Filmsammlung hinzu, um zu beginnen."
+
+#: src/window.ui:91
+msgid "Add Movie Folder"
+msgstr "Filmordner hinzufügen"
+
+#: src/window.ui:140
+msgid "_Preferences"
+msgstr "_Einstellungen"
+
+#: src/window.ui:146
+msgid "_Keyboard Shortcuts"
+msgstr "_Tastenkürzel"
+
+#: src/window.ui:150
+msgid "_About Videoclub"
+msgstr "_Über Videoclub"
+
+#: src/poster_card.ui:64
+msgid "Subtitles available"
+msgstr "Untertitel verfügbar"
+
+#: src/video_widget.ui:21
+msgid "Toggle fullscreen"
+msgstr "Vollbild umschalten"
+
+#: src/video_widget.ui:88
+msgid "Volume"
+msgstr "Lautstärke"
+
+#: src/shortcuts-dialog.ui:6
+msgid "Shortcuts"
+msgstr "Tastenkürzel"
+
+#: src/shortcuts-dialog.ui:9
+msgctxt "shortcut window"
+msgid "Show Shortcuts"
+msgstr "Tastenkürzel anzeigen"
+
+#: src/shortcuts-dialog.ui:15
+msgctxt "shortcut window"
+msgid "Quit"
+msgstr "Beenden"
+
+#: src/preferences_dialog.rs:20
+msgid "Spanish"
+msgstr "Spanisch"
+
+#: src/preferences_dialog.rs:21
+msgid "English"
+msgstr "Englisch"
+
+#: src/preferences_dialog.rs:22
+msgid "French"
+msgstr "Französisch"
+
+#: src/preferences_dialog.rs:23
+msgid "Portuguese"
+msgstr "Portugiesisch"
+
+#: src/preferences_dialog.rs:24
+msgid "German"
+msgstr "Deutsch"
+
+#: src/preferences_dialog.rs:25
+msgid "Italian"
+msgstr "Italienisch"
+
+#: src/preferences_dialog.rs:45
+msgid "APIs"
+msgstr "APIs"
+
+#: src/preferences_dialog.rs:56
+msgid "OMDb (Open Movie Database)"
+msgstr "OMDb (Open Movie Database)"
+
+#: src/preferences_dialog.rs:57
+msgid "Used to fetch movie metadata, posters, and descriptions."
+msgstr "Wird verwendet, um Filmmetadaten, Poster und Beschreibungen abzurufen."
+
+#: src/preferences_dialog.rs:60 src/preferences_dialog.rs:92
+msgid "API Key"
+msgstr "API-Schlüssel"
+
+#: src/preferences_dialog.rs:68 src/preferences_dialog.rs:100
+msgid "Get a free API key"
+msgstr "Kostenlosen API-Schlüssel erhalten"
+
+#: src/preferences_dialog.rs:88
+msgid "OpenSubtitles"
+msgstr "OpenSubtitles"
+
+#: src/preferences_dialog.rs:89
+msgid "Used to search and download subtitles for your movies."
+msgstr "Wird verwendet, um Untertitel für deine Filme zu suchen und herunterzuladen."
+
+#: src/preferences_dialog.rs:122
+msgid "General"
+msgstr "Allgemein"
+
+#: src/preferences_dialog.rs:126
+msgid "Language"
+msgstr "Sprache"
+
+#: src/preferences_dialog.rs:129
+msgid "Subtitle Language"
+msgstr "Untertitelsprache"
+
+#: src/preferences_dialog.rs:139
+msgid "Audio Language"
+msgstr "Audiosprache"
+
+#: src/preferences_dialog.rs:153
+msgid "Subtitles Appearance"
+msgstr "Untertitel-Erscheinungsbild"
+
+#: src/preferences_dialog.rs:156
+msgid "Font"
+msgstr "Schriftart"
+
+#: src/edit_movie_dialog.rs:41
+msgid "Edit — {}"
+msgstr "Bearbeiten — {}"
+
+#: src/edit_movie_dialog.rs:57
+msgid "File Info"
+msgstr "Dateiinformationen"
+
+#: src/edit_movie_dialog.rs:66
+msgid "Video File"
+msgstr "Videodatei"
+
+#: src/edit_movie_dialog.rs:77
+msgid "Subtitles"
+msgstr "Untertitel"
+
+#: src/edit_movie_dialog.rs:86
+msgid "Download Subtitles"
+msgstr "Untertitel herunterladen"
+
+#: src/edit_movie_dialog.rs:102
+msgid "Search Parameters"
+msgstr "Suchparameter"
+
+#: src/edit_movie_dialog.rs:104
+msgid "These values are sent to OMDb. Edit them to refine the search."
+msgstr "Diese Werte werden an OMDb gesendet. Bearbeite sie, um die Suche zu verfeinern."
+
+#: src/edit_movie_dialog.rs:108
+msgid "Search Title"
+msgstr "Suchbegriff"
+
+#: src/edit_movie_dialog.rs:113
+msgid "Search Year"
+msgstr "Suchjahr"
+
+#: src/edit_movie_dialog.rs:120
+msgid "Fetch from OMDb"
+msgstr "Von OMDb abrufen"
+
+#: src/edit_movie_dialog.rs:136
+msgid "Stored Metadata"
+msgstr "Gespeicherte Metadaten"
+
+#: src/edit_movie_dialog.rs:138
+msgid "Editable directly. Press Save to persist without re-fetching."
+msgstr "Direkt bearbeitbar. Klicke Speichern, um ohne erneutes Abrufen zu übernehmen."
+
+#: src/edit_movie_dialog.rs:142
+msgid "Title"
+msgstr "Titel"
+
+#: src/edit_movie_dialog.rs:147
+msgid "Year"
+msgstr "Jahr"
+
+#: src/edit_movie_dialog.rs:154
+msgid "Synopsis"
+msgstr "Zusammenfassung"
+
+#: src/edit_movie_dialog.rs:160
+msgid "IMDb ID"
+msgstr "IMDb-ID"
+
+#: src/edit_movie_dialog.rs:173
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: src/edit_movie_dialog.rs:174
+msgid "Save"
+msgstr "Speichern"
+
+#: src/edit_movie_dialog.rs:262
+msgid "Downloading…"
+msgstr "Wird heruntergeladen…"
+
+#: src/edit_movie_dialog.rs:276
+msgid "Downloaded ✓"
+msgstr "Heruntergeladen ✓"
+
+#: src/edit_movie_dialog.rs:278
+msgid "Retry"
+msgstr "Wiederholen"
+
+#: src/edit_movie_dialog.rs:367
+msgid "Not available"
+msgstr "Nicht verfügbar"
+
+#: src/window.rs:252
+msgid "Edit Metadata"
+msgstr "Metadaten bearbeiten"
+
+#: src/window.rs:516
+msgid "Select Movie Folder"
+msgstr "Filmordner auswählen"
+
+#: src/application.rs:167
+msgid "translator-credits"
+msgstr "Vladimir Zurita"
+
+#: data/com.vladzur.videoclub.desktop.in:9
+msgid "GTK;"
+msgstr "GTK;"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:8
+msgid "Explora, organiza y reproduce tu colección de películas"
+msgstr "Durchsuche, organisiere und spiele deine Filmsammlung ab"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:10
+msgid ""
+"Videoclub es una aplicación de escritorio para GNOME que te permite "
+"explorar, organizar y reproducir tu colección de películas almacenadas "
+"localmente."
+msgstr ""
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:14
+msgid ""
+"Escanea directorios del sistema de archivos, descarga metadatos y pósters "
+"desde OMDb y TMDb, obtiene subtítulos desde OpenSubtitles, y reproduce video "
+"usando GStreamer con aceleración por hardware."
+msgstr ""
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:19
+msgid "Funcionalidades principales:"
+msgstr "Hauptfunktionen:"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:21
+msgid "Escaneo recursivo de directorios con detección de archivos de video"
+msgstr "Rekursives Scannen von Verzeichnissen mit Erkennung von Videodateien"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:22
+msgid "Vista en grilla responsiva con carátulas"
+msgstr "Responsive Rasteransicht mit Covern"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:23
+msgid "Búsqueda y filtrado por título en tiempo real"
+msgstr "Echtzeit-Suche und Filterung nach Titel"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:24
+msgid "Descarga de metadatos, pósters y subtítulos"
+msgstr "Download von Metadaten, Postern und Untertiteln"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:25
+msgid "Reproducción de video con aceleración por hardware (GStreamer)"
+msgstr "Videowiedergabe mit Hardwarebeschleunigung (GStreamer)"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:26
+msgid "Drag &amp; drop para reproducción instantánea"
+msgstr "Drag &amp; Drop für sofortige Wiedergabe"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:27
+msgid "Inhibición del protector de pantalla durante la reproducción"
+msgstr "Bildschirmschoner-Unterdrückung während der Wiedergabe"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:32
+msgid "vladzur"
+msgstr "vladzur"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:56
+#: data/com.vladzur.videoclub.metainfo.xml.in:60
+msgid "A caption"
+msgstr "Bildschirmfoto"
+
+#: data/com.vladzur.videoclub.gschema.xml:6
+msgid "Directories to scan for movies"
+msgstr "Zu durchsuchende Verzeichnisse für Filme"
+
+#: data/com.vladzur.videoclub.gschema.xml:7
+msgid ""
+"List of directories that the application will scan recursively to find movie "
+"files."
+msgstr ""
+
+#: data/com.vladzur.videoclub.gschema.xml:11
+msgid "OMDb API key"
+msgstr "OMDb-API-Schlüssel"
+
+#: data/com.vladzur.videoclub.gschema.xml:12
+msgid ""
+"API key for OMDb (Open Movie Database) used to fetch movie metadata and "
+"posters."
+msgstr ""
+
+#: data/com.vladzur.videoclub.gschema.xml:16
+msgid "OpenSubtitles API key"
+msgstr "OpenSubtitles-API-Schlüssel"
+
+#: data/com.vladzur.videoclub.gschema.xml:17
+msgid "API key for OpenSubtitles used to search and download subtitles."
+msgstr "API-Schlüssel für OpenSubtitles, verwendet zum Suchen und Herunterladen von Untertiteln."
+
+#: data/com.vladzur.videoclub.gschema.xml:21
+msgid "Preferred audio language"
+msgstr "Bevorzugte Audiosprache"
+
+#: data/com.vladzur.videoclub.gschema.xml:22
+msgid "ISO 639-1 language code for the preferred audio track language."
+msgstr "ISO 639-1 Sprachcode für die bevorzugte Audiospur."
+
+#: data/com.vladzur.videoclub.gschema.xml:26
+msgid "Preferred subtitle language"
+msgstr "Bevorzugte Untertitelsprache"
+
+#: data/com.vladzur.videoclub.gschema.xml:27
+msgid "ISO 639-1 language code for the preferred subtitle language."
+msgstr "ISO 639-1 Sprachcode für die bevorzugte Untertitelsprache."
+
+#: data/com.vladzur.videoclub.gschema.xml:31
+msgid "Window width"
+msgstr "Fensterbreite"
+
+#: data/com.vladzur.videoclub.gschema.xml:32
+msgid "Width of the main application window in pixels."
+msgstr "Breite des Hauptanwendungsfensters in Pixeln."
+
+#: data/com.vladzur.videoclub.gschema.xml:36
+msgid "Window height"
+msgstr "Fensterhöhe"
+
+#: data/com.vladzur.videoclub.gschema.xml:37
+msgid "Height of the main application window in pixels."
+msgstr "Höhe des Hauptanwendungsfensters in Pixeln."
+
+#: data/com.vladzur.videoclub.gschema.xml:41
+msgid "Window maximized"
+msgstr "Fenster maximiert"
+
+#: data/com.vladzur.videoclub.gschema.xml:42
+msgid "Whether the main window was maximized in the last session."
+msgstr "Ob das Hauptfenster in der letzten Sitzung maximiert war."
+
+#: data/com.vladzur.videoclub.gschema.xml:46
+msgid "Subtitle font"
+msgstr "Untertitel-Schriftart"
+
+#: data/com.vladzur.videoclub.gschema.xml:47
+msgid ""
+"Pango font description for subtitle rendering (e.g. \"Sans 18\", \"DejaVu "
+"Serif Bold 20\")."
+msgstr ""
