@@ -291,14 +291,19 @@ pub fn build_edit_movie_dialog(
         #[weak] title_row,
         #[weak] year_row,
         #[weak] synopsis_row,
+        #[weak] search_title_row,
+        #[weak] search_year_row,
         move |_| {
             let new_title = title_row.text().to_string();
             let new_year = year_row.text().to_string().parse::<i32>().unwrap_or(0);
             let new_synopsis = synopsis_row.text().to_string();
 
+            let new_search_title = search_title_row.text().to_string();
+            let new_search_year = search_year_row.text().to_string().parse::<i32>().ok();
+
             // Actualizar MovieObject
             movie.set_title(new_title.as_str());
-            if new_year > 0 { movie.set_year(new_year); }
+            movie.set_year(new_year);
             movie.set_synopsis(new_synopsis.as_str());
             movie.set_has_metadata(true);
 
@@ -310,11 +315,12 @@ pub fn build_edit_movie_dialog(
                 let existing = store.get(&video_path).cloned();
 
                 let updated = videoclub_core::metadata_store::StoredMetadata {
-                    search_title: existing.as_ref()
-                        .map(|e| e.search_title.clone())
-                        .unwrap_or_else(|| new_title.clone()),
-                    search_year: existing.as_ref().and_then(|e| e.search_year)
-                        .or_else(|| if new_year > 0 { Some(new_year) } else { None }),
+                    search_title: if !new_search_title.is_empty() {
+                        new_search_title
+                    } else {
+                        existing.as_ref().map(|e| e.search_title.clone()).unwrap_or_else(|| new_title.clone())
+                    },
+                    search_year: new_search_year.or_else(|| existing.as_ref().and_then(|e| e.search_year)),
                     title: Some(new_title),
                     year: if new_year > 0 { Some(new_year) } else { None },
                     synopsis: if new_synopsis.is_empty() { None } else { Some(new_synopsis) },
