@@ -85,9 +85,9 @@ impl PlaybackController {
         self.pipeline.duration_seconds()
     }
 
-    /// Ajusta el volumen (0.0 - 1.0).
+    /// Ajusta el volumen (0.0 - 100.0).
     pub fn set_volume(&self, volume: f64) {
         self.pipeline.set_volume(volume);
-    }
+    }    
 
 }

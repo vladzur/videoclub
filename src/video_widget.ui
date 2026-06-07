@@ -102,6 +102,15 @@
                         </child>
                         <child>
                           <object class="GtkScaleButton" id="volume_button">
+                            <property name="adjustment">
+                              <object class="GtkAdjustment">
+                                <property name="lower">0.0</property>
+                                <property name="upper">1.0</property>
+                                <property name="step-increment">0.05</property>
+                                <property name="page-increment">0.1</property>
+                                <property name="value">1.0</property>
+                              </object>
+                            </property>
                             <property name="value">1.0</property>
                             <property name="tooltip-text" translatable="yes">Volume</property>
                           </object>
