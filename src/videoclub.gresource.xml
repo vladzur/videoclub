@@ -8,4 +8,7 @@
     <file>style.css</file>
     <file>../data/poster_placeholder.svg</file>
   </gresource>
+  <gresource prefix="/com/vladzur/videoclub/icons/scalable/actions">
+    <file preprocess="xml-stripblanks" alias="info-outline-symbolic.svg">../data/icons/info-outline-symbolic.svg</file>
+  </gresource>
 </gresources>

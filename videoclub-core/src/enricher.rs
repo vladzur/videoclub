@@ -96,6 +96,21 @@ impl MovieEnricher {
         if let Some(id) = &result.imdb_id {
             movie.set_imdb_id(id.as_str());
         }
+        if let Some(rating) = &result.imdb_rating {
+            if rating != "N/A" {
+                movie.set_rating(rating.as_str());
+            }
+        }
+        if let Some(genre) = &result.genre {
+            if genre != "N/A" {
+                movie.set_genre(genre.as_str());
+            }
+        }
+        if let Some(runtime) = &result.runtime {
+            if runtime != "N/A" {
+                movie.set_runtime(runtime.as_str());
+            }
+        }
         movie.set_has_metadata(true);
 
         // Descargar y cachear póster
@@ -125,6 +140,18 @@ impl MovieEnricher {
             imdb_id: {
                 let id = movie.imdb_id();
                 if id.is_empty() { None } else { Some(id) }
+            },
+            imdb_rating: {
+                let rating = movie.rating();
+                if rating.is_empty() { None } else { Some(rating) }
+            },
+            genre: {
+                let genre = movie.genre();
+                if genre.is_empty() { None } else { Some(genre) }
+            },
+            runtime: {
+                let runtime = movie.runtime();
+                if runtime.is_empty() { None } else { Some(runtime) }
             },
             has_metadata: true,
             subtitle_path: None,

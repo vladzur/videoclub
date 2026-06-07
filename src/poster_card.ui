@@ -20,14 +20,31 @@
               <class name="poster-frame"/>
             </style>
             <child>
-              <object class="GtkPicture" id="picture">
-                <property name="content-fit">cover</property>
-                <property name="can-shrink">true</property>
-                <property name="hexpand">true</property>
-                <property name="vexpand">true</property>
-                <style>
-                  <class name="poster"/>
-                </style>
+              <object class="GtkOverlay">
+                <child>
+                  <object class="GtkPicture" id="picture">
+                    <property name="content-fit">cover</property>
+                    <property name="can-shrink">true</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <style>
+                      <class name="poster"/>
+                    </style>
+                  </object>
+                </child>
+                <child type="overlay">
+                  <object class="GtkButton" id="info_button">
+                    <property name="icon-name">info-outline-symbolic</property>
+                    <property name="halign">end</property>
+                    <property name="valign">start</property>
+                    <property name="margin-top">8</property>
+                    <property name="margin-end">8</property>
+                    <style>
+                      <class name="circular"/>
+                      <class name="osd"/>
+                    </style>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
@@ -73,4 +90,51 @@
       </object>
     </child>
   </template>
+
+  <object class="GtkPopover" id="info_popover">
+    <property name="child">
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">8</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
+        <property name="width-request">280</property>
+        <child>
+          <object class="GtkLabel" id="popover_title_label">
+            <property name="halign">start</property>
+            <property name="wrap">true</property>
+            <attributes>
+              <attribute name="weight" value="bold"/>
+              <attribute name="scale" value="1.2"/>
+            </attributes>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="popover_meta_label">
+            <property name="halign">start</property>
+            <property name="wrap">true</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="popover_synopsis_label">
+            <property name="halign">start</property>
+            <property name="wrap">true</property>
+            <property name="lines">6</property>
+            <property name="ellipsize">end</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="more_details_button">
+            <property name="label" translatable="yes">More Details</property>
+            <property name="margin-top">8</property>
+          </object>
+        </child>
+      </object>
+    </property>
+  </object>
 </interface>

@@ -329,6 +329,9 @@ pub fn build_edit_movie_dialog(
                         let id = movie.imdb_id();
                         if id.is_empty() { None } else { Some(id) }
                     },
+                    imdb_rating: existing.as_ref().and_then(|e| e.imdb_rating.clone()),
+                    genre: existing.as_ref().and_then(|e| e.genre.clone()),
+                    runtime: existing.as_ref().and_then(|e| e.runtime.clone()),
                     has_metadata: true,
                     subtitle_path: existing.as_ref().and_then(|e| e.subtitle_path.clone()),
                 };

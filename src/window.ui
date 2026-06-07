@@ -5,7 +5,7 @@
   <template class="VideoclubWindow" parent="AdwApplicationWindow">
     <property name="title" translatable="yes">Videoclub</property>
     <property name="default-width">1100</property>
-    <property name="default-height">700</property>
+    <property name="default-height">1000</property>
     <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
