@@ -63,14 +63,14 @@ impl SubtitlesClient {
     /// Crea un nuevo cliente de OpenSubtitles.
     pub fn new(api_key: String) -> Result<Self, String> {
         let http = Client::builder()
-            .user_agent("Videoclub/0.1.0")
+            .user_agent("Videoclub/1.2.0")
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
         Ok(Self {
             http,
             api_key,
-            user_agent: "Videoclub/0.1.0".to_string(),
+            user_agent: "Videoclub/1.2.0".to_string(),
             base_url: "https://api.opensubtitles.com/api/v1",
         })
     }

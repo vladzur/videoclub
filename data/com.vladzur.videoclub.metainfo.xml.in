@@ -5,33 +5,37 @@
   <project_license>GPL-3.0-or-later</project_license>
 
   <name>Videoclub</name>
-  <summary>Keep the summary shorter, between 10 and 35 characters</summary>
+  <summary>Explora, organiza y reproduce tu colección de películas</summary>
   <description>
-    <p>No description</p>
+    <p>
+      Videoclub es una aplicación de escritorio para GNOME que te permite explorar,
+      organizar y reproducir tu colección de películas almacenadas localmente.
+    </p>
+    <p>
+      Escanea directorios del sistema de archivos, descarga metadatos y pósters desde
+      OMDb y TMDb, obtiene subtítulos desde OpenSubtitles, y reproduce video usando
+      GStreamer con aceleración por hardware.
+    </p>
+    <p>Funcionalidades principales:</p>
+    <ul>
+      <li>Escaneo recursivo de directorios con detección de archivos de video</li>
+      <li>Vista en grilla responsiva con carátulas</li>
+      <li>Búsqueda y filtrado por título en tiempo real</li>
+      <li>Descarga de metadatos, pósters y subtítulos</li>
+      <li>Reproducción de video con aceleración por hardware (GStreamer)</li>
+      <li>Drag &amp; drop para reproducción instantánea</li>
+      <li>Inhibición del protector de pantalla durante la reproducción</li>
+    </ul>
   </description>
 
-  <developer id="tld.vendor">
-    <name>Developer name</name>
+  <developer id="com.vladzur">
+    <name>vladzur</name>
   </developer>
 
-  <!-- Required: Should be a link to the upstream homepage for the component -->
-  <url type="homepage">https://example.org/</url>
-  <!-- Recommended: It is highly recommended for open-source projects to display the source code repository -->
-  <url type="vcs-browser">https://example.org/repository</url>
-  <!-- Should point to the software's bug tracking system, for users to report new bugs -->
-  <url type="bugtracker">https://example.org/issues</url>
-  <!-- Should link a FAQ page for this software, to answer some of the most-asked questions in detail -->
-  <!-- URLs of this type should point to a webpage where users can submit or modify translations of the upstream project -->
-  <url type="translate">https://example.org/translate</url>
-  <url type="faq">https://example.org/faq</url>
-  <!-- Should provide a web link to an online user's reference, a software manual or help page -->
-  <url type="help">https://example.org/help</url>
-  <!-- URLs of this type should point to a webpage showing information on how to donate to the described software project -->
-  <url type="donation">https://example.org/donate</url>
-  <!-- This could for example be an HTTPS URL to an online form or a page describing how to contact the developer -->
-  <url type="contact">https://example.org/contact</url>
-  <!-- URLs of this type should point to a webpage showing information on how to contribute to the described software project -->
-  <url type="contribute">https://example.org/contribute</url>
+  <url type="homepage">https://github.com/vladzur/videoclub</url>
+  <url type="vcs-browser">https://github.com/vladzur/videoclub</url>
+  <url type="bugtracker">https://github.com/vladzur/videoclub/issues</url>
+  <url type="contribute">https://github.com/vladzur/videoclub</url>
 
   <translation type="gettext">videoclub</translation>
   <!-- All graphical applications having a desktop file must have this tag in the MetaInfo.
@@ -58,13 +62,16 @@
   </screenshots>
 
   <releases>
-    <release version="1.0.1" date="2024-01-18">
-      <url type="details">https://example.org/changelog.html#version_1.0.1</url>
+    <release version="1.2.0" date="2026-06-06">
+      <url type="details">https://github.com/vladzur/videoclub/releases/tag/v1.2.0</url>
       <description translate="no">
-        <p>Release description</p>
+        <p>Lanzamiento inicial público de Videoclub.</p>
         <ul>
-          <li>List of changes</li>
-          <li>List of changes</li>
+          <li>Escaneo recursivo de directorios de películas</li>
+          <li>Descarga de metadatos desde OMDb y TMDb</li>
+          <li>Descarga de subtítulos desde OpenSubtitles</li>
+          <li>Reproducción de video con GStreamer</li>
+          <li>Interfaz gráfica con libadwaita</li>
         </ul>
       </description>
     </release>

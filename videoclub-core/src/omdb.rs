@@ -87,7 +87,7 @@ impl OmdbClient {
     /// Crea un nuevo cliente de OMDb. No requiere llamada de configuración previa.
     pub fn new(api_key: String) -> Result<Self, String> {
         let http = Client::builder()
-            .user_agent("Videoclub/0.1.0")
+            .user_agent("Videoclub/1.2.0")
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
