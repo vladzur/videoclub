@@ -190,7 +190,7 @@ impl VideoWidget {
         glib::Object::new()
     }
 
-    pub fn setup_player(&self, controller: PlaybackController, video_path: &str) {
+    pub fn setup_player(&self, controller: PlaybackController, video_path: &str, movie_title: &str) {
         let imp = self.imp();
 
         if let Some(paintable) = controller.paintable() {
@@ -255,10 +255,10 @@ impl VideoWidget {
             }
         ));
 
-        self.populate_subtitle_selector();
+        self.populate_subtitle_selector(movie_title);
     }
 
-    fn populate_subtitle_selector(&self) {
+    fn populate_subtitle_selector(&self, movie_title: &str) {
         let imp = self.imp();
         let video_path = imp.video_path.borrow();
         
@@ -266,7 +266,7 @@ impl VideoWidget {
             return;
         }
 
-        let srt_files = scan_subtitle_files(&video_path);
+        let srt_files = scan_subtitle_files(&video_path, movie_title);
 
         if srt_files.is_empty() {
             imp.subtitle_button.set_visible(false);
@@ -395,7 +395,7 @@ impl VideoWidget {
         imp.subtitle_button.set_menu_model(Some(&menu));
 
         if let Some(path) = auto_select_path {
-            action.change_state(&path.to_variant());
+            action.activate(Some(&path.to_variant()));
         }
 
         imp.subtitle_button.set_visible(true);
@@ -595,10 +595,10 @@ struct SubtitleFile {
 }
 
 /// Escanea el directorio del video en busca de archivos `.srt`
-/// con el patrón `{video_stem}.{lang}.srt`.
+/// con el patrón `{video_stem}.{lang}.srt` o `{movie_title}.{lang}.srt`.
 ///
 /// También detecta archivos `.srt` con cualquier sufijo de idioma.
-fn scan_subtitle_files(video_path: &str) -> Vec<SubtitleFile> {
+fn scan_subtitle_files(video_path: &str, movie_title: &str) -> Vec<SubtitleFile> {
     let video = Path::new(video_path);
     let Some(parent) = video.parent() else {
         return Vec::new();
@@ -609,50 +609,72 @@ fn scan_subtitle_files(video_path: &str) -> Vec<SubtitleFile> {
     let known_codes = &["es", "en", "fr", "pt", "de", "it"];
 
     let mut results = Vec::new();
+    let mut added_paths = std::collections::HashSet::new();
 
-    // Buscar archivos con el patrón: {stem}.{lang}.srt para idiomas conocidos
+    // Buscar archivos con el patrón para idiomas conocidos
     for &code in known_codes {
-        let candidate = parent.join(format!("{}.{}.srt", stem, code));
-        if candidate.exists() {
-            results.push(SubtitleFile {
-                path: candidate.to_string_lossy().to_string(),
-                filename: candidate
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string(),
-                language_code: Some(code.to_string()),
-            });
+        let mut candidates = vec![parent.join(format!("{}.{}.srt", stem, code))];
+        if !movie_title.is_empty() {
+            candidates.push(parent.join(format!("{}.{}.srt", movie_title, code)));
+        }
+        for candidate in candidates {
+            if candidate.exists() {
+                let path_str = candidate.to_string_lossy().to_string();
+                if added_paths.insert(path_str.clone()) {
+                    results.push(SubtitleFile {
+                        path: path_str,
+                        filename: candidate.file_name().unwrap_or_default().to_string_lossy().to_string(),
+                        language_code: Some(code.to_string()),
+                    });
+                }
+            }
         }
     }
 
-    // También buscar cualquier otro {stem}.*.srt que no coincida con los conocidos
+    // También buscar cualquier otro .srt
     if let Ok(entries) = std::fs::read_dir(parent) {
-        let prefix = format!("{}.", stem);
+        let prefix_stem = format!("{}.", stem);
+        let prefix_title = if movie_title.is_empty() { String::new() } else { format!("{}.", movie_title) };
+        
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with(&prefix) && name.ends_with(".srt") {
-                // Extraer el código de idioma: {stem}.{maybe_code}.srt
-                let code = {
-                    let middle = &name[prefix.len()..];
-                    let extracted = middle.strip_suffix(".srt").unwrap_or(middle);
-                    if extracted.is_empty() {
-                        None // sin código de idioma (ej. "movie.srt")
-                    } else {
-                        Some(extracted.to_string())
-                    }
-                };
-                // Si ya lo agregamos como idioma conocido, saltar
-                if let Some(ref c) = code {
-                    if known_codes.contains(&c.as_str()) {
+            if name.ends_with(".srt") {
+                let matches_stem = name.starts_with(&prefix_stem) || name == format!("{}.srt", stem);
+                let matches_title = !movie_title.is_empty() && (name.starts_with(&prefix_title) || name == format!("{}.srt", movie_title));
+                
+                if matches_stem || matches_title {
+                    let path_str = entry.path().to_string_lossy().to_string();
+                    if added_paths.contains(&path_str) {
                         continue;
                     }
+                    
+                    let prefix_used = if matches_title && name.starts_with(&prefix_title) {
+                        &prefix_title
+                    } else if matches_stem && name.starts_with(&prefix_stem) {
+                        &prefix_stem
+                    } else {
+                        ""
+                    };
+                    
+                    let code = if prefix_used.is_empty() {
+                        None // Coincidencia exacta sin sufijo de idioma (ej. movie.srt)
+                    } else {
+                        let middle = &name[prefix_used.len()..];
+                        let extracted = middle.strip_suffix(".srt").unwrap_or(middle);
+                        if extracted.is_empty() {
+                            None
+                        } else {
+                            Some(extracted.to_string())
+                        }
+                    };
+
+                    added_paths.insert(path_str.clone());
+                    results.push(SubtitleFile {
+                        path: path_str,
+                        filename: name,
+                        language_code: code,
+                    });
                 }
-                results.push(SubtitleFile {
-                    path: entry.path().to_string_lossy().to_string(),
-                    filename: name,
-                    language_code: code,
-                });
             }
         }
     }

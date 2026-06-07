@@ -72,7 +72,7 @@ pub fn build_edit_movie_dialog(
     file_group.add(&filename_row);
 
     // Archivo de subtítulos (si existe)
-    let sub_info = resolve_subtitle_file(&video_path);
+    let sub_info = resolve_subtitle_file(&video_path, &movie.title());
     let subtitle_row = adw::ActionRow::new();
     subtitle_row.set_title(&gettext("Subtitles"));
     let subtitle_label = gtk::Label::new(Some(&sub_info));
@@ -268,7 +268,7 @@ pub fn build_edit_movie_dialog(
                 move |success| {
                     if success {
                         let video_path = movie.video_path();
-                        let info = resolve_subtitle_file(&video_path);
+                        let info = resolve_subtitle_file(&video_path, &movie.title());
                         subtitle_label.set_text(&info);
                         subtitle_label.remove_css_class("dim-label");
                         subtitle_label.add_css_class("accent");
@@ -341,25 +341,37 @@ pub fn build_edit_movie_dialog(
 ///
 /// Prioriza el idioma preferido configurado en Ajustes.
 /// Devuelve `"✓ subtitles.srt"` si se encuentra, o `"Not available"` si no.
-fn resolve_subtitle_file(video_path: &str) -> String {
+fn resolve_subtitle_file(video_path: &str, movie_title: &str) -> String {
     let path = Path::new(video_path);
     let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     let lang = AppSettings::new().preferred_subtitle_language();
 
     // Intentar con el idioma preferido
-    let candidate = parent.join(format!("{}.{}.srt", stem, lang));
-    if candidate.exists() {
-        return format!("✓ {}", candidate.file_name().unwrap().to_string_lossy());
+    let mut candidates = vec![parent.join(format!("{}.{}.srt", stem, lang))];
+    if !movie_title.is_empty() {
+        candidates.push(parent.join(format!("{}.{}.srt", movie_title, lang)));
+    }
+    
+    for candidate in candidates {
+        if candidate.exists() {
+            return format!("✓ {}", candidate.file_name().unwrap().to_string_lossy());
+        }
     }
 
-    // Fallback: buscar cualquier .srt con el mismo stem
+    // Fallback: buscar cualquier .srt con el mismo stem o title
     if let Ok(entries) = std::fs::read_dir(parent) {
+        let prefix_stem = format!("{}.", stem);
+        let prefix_title = if movie_title.is_empty() { String::new() } else { format!("{}.", movie_title) };
+        
         for entry in entries.flatten() {
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
-            if name_str.starts_with(stem) && name_str.ends_with(".srt") {
-                return format!("✓ {}", name_str);
+            if name_str.ends_with(".srt") {
+                if name_str.starts_with(&prefix_stem) || name_str == format!("{}.srt", stem) ||
+                   (!movie_title.is_empty() && (name_str.starts_with(&prefix_title) || name_str == format!("{}.srt", movie_title))) {
+                    return format!("✓ {}", name_str);
+                }
             }
         }
     }
