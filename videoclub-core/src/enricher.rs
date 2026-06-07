@@ -186,9 +186,14 @@ pub async fn download_subtitles_for_movie(
         Ok(h) => h,
         Err(_) => {
             debug!("No se pudo calcular hash, buscando por nombre");
-            let filename = video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
+            let title = movie.title();
+            let query = if title.is_empty() {
+                video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("")
+            } else {
+                &title
+            };
             let results = subtitles
-                .search_by_name(filename, language, limited_year(movie.year()))
+                .search_by_name(query, language, limited_year(movie.year()))
                 .await?;
             if let Some(best) = results.first() {
                 return download_and_save_subtitle(
@@ -205,9 +210,14 @@ pub async fn download_subtitles_for_movie(
     let results = subtitles.search_by_hash(&hash, language).await?;
     let results = if results.is_empty() {
         info!("Sin resultados por hash, buscando por nombre...");
-        let filename = video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
+        let title = movie.title();
+        let query = if title.is_empty() {
+            video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("")
+        } else {
+            &title
+        };
         subtitles
-            .search_by_name(filename, language, limited_year(movie.year()))
+            .search_by_name(query, language, limited_year(movie.year()))
             .await?
     } else {
         results

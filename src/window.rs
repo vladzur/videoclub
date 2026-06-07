@@ -330,7 +330,7 @@ impl VideoclubWindow {
             }
         }
 
-        video_widget.setup_player(controller, &path);
+        video_widget.setup_player(controller, &path, &movie.title());
 
         // ── adw::Window: integración correcta con libadwaita ──────────────────
         // gtk::Window + AdwHeaderBar = doble frame (CSD propio del WM + AdwHeaderBar)
