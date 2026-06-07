@@ -81,6 +81,13 @@ pub fn build_edit_movie_dialog(
     subtitle_row.add_suffix(&subtitle_label);
     file_group.add(&subtitle_row);
 
+    // Botón para descargar subtítulos
+    let download_subs_btn = gtk::Button::with_label("Download Subtitles");
+    download_subs_btn.set_halign(gtk::Align::End);
+    download_subs_btn.set_margin_top(4);
+    download_subs_btn.set_sensitive(!movie.subtitles_ready());
+    content_box.append(&download_subs_btn);
+
     content_box.append(&file_group);
 
     // ── Separador ─────────────────────────────────────────────────────────
@@ -243,6 +250,38 @@ pub fn build_edit_movie_dialog(
         }
     ));
 
+    // Download Subtitles: descarga subtítulos para esta película
+    download_subs_btn.connect_clicked(glib::clone!(
+        #[weak] movie,
+        #[weak] window,
+        #[weak] download_subs_btn,
+        #[weak] subtitle_label,
+        move |_| {
+            download_subs_btn.set_sensitive(false);
+            download_subs_btn.set_label("Downloading...");
+
+            window.download_subtitles_single(&movie, glib::clone!(
+                #[weak] movie,
+                #[weak] download_subs_btn,
+                #[weak] subtitle_label,
+                move |success| {
+                    if success {
+                        let video_path = movie.video_path();
+                        let info = resolve_subtitle_file(&video_path);
+                        subtitle_label.set_text(&info);
+                        subtitle_label.remove_css_class("dim-label");
+                        subtitle_label.add_css_class("accent");
+                        download_subs_btn.set_sensitive(false);
+                        download_subs_btn.set_label("Downloaded ✓");
+                    } else {
+                        download_subs_btn.set_label("Retry");
+                        download_subs_btn.set_sensitive(true);
+                    }
+                }
+            ));
+        }
+    ));
+
     // Save: persiste los campos editados manualmente en el store y MovieObject
     save_btn.connect_clicked(glib::clone!(
         #[weak] movie,
@@ -284,6 +323,7 @@ pub fn build_edit_movie_dialog(
                         if id.is_empty() { None } else { Some(id) }
                     },
                     has_metadata: true,
+                    subtitle_path: existing.as_ref().and_then(|e| e.subtitle_path.clone()),
                 };
                 store.upsert(&video_path, updated);
                 store.save();

@@ -124,6 +124,11 @@ impl VideoclubApplication {
         self.imp().settings.opensubtitles_api_key()
     }
 
+    /// Devuelve el idioma preferido para subtítulos configurado en Preferencias (GSettings).
+    pub fn preferred_subtitle_language(&self) -> String {
+        self.imp().settings.preferred_subtitle_language()
+    }
+
     fn setup_gactions(&self) {
         let quit_action = gio::ActionEntry::builder("quit")
             .activate(move |app: &Self, _, _| app.quit())

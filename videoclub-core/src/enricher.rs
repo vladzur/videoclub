@@ -127,74 +127,18 @@ impl MovieEnricher {
                 if id.is_empty() { None } else { Some(id) }
             },
             has_metadata: true,
+            subtitle_path: None,
         })
     }
 
     /// Busca y descarga subtítulos para una película.
+    /// Delega en la función standalone `download_subtitles_for_movie`.
     pub async fn download_subtitles(
         &self,
         movie: &MovieObject,
         language: &str,
     ) -> Result<Option<String>, String> {
-        let path = movie.video_path();
-        if path.is_empty() {
-            return Ok(None);
-        }
-
-        let video_path = Path::new(&path);
-
-        let hash = match compute_opensubtitles_hash(video_path) {
-            Ok(h) => h,
-            Err(_) => {
-                debug!("No se pudo calcular hash, buscando por nombre");
-                let filename = video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
-                let results = self
-                    .subtitles
-                    .search_by_name(filename, language, limited_year(movie.year()))
-                    .await?;
-                if let Some(best) = results.first() {
-                    return self.download_and_save(best, video_path, language, movie).await;
-                }
-                return Ok(None);
-            }
-        };
-
-        debug!("Hash calculado: {} (tamaño: {})", hash.hash, hash.size);
-
-        let results = self.subtitles.search_by_hash(&hash, language).await?;
-        let results = if results.is_empty() {
-            info!("Sin resultados por hash, buscando por nombre...");
-            let filename = video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
-            self.subtitles
-                .search_by_name(filename, language, limited_year(movie.year()))
-                .await?
-        } else {
-            results
-        };
-
-        if let Some(best) = results.first() {
-            self.download_and_save(best, video_path, language, movie).await
-        } else {
-            info!("No se encontraron subtítulos en '{}'", language);
-            Ok(None)
-        }
-    }
-
-    async fn download_and_save(
-        &self,
-        result: &crate::subtitles::SubtitleResult,
-        video_path: &Path,
-        language: &str,
-        movie: &MovieObject,
-    ) -> Result<Option<String>, String> {
-        info!("Descargando subtítulo: {}", result.filename);
-        let content = self.subtitles.download_subtitle(&result.download_url).await?;
-        let srt_path = video_path.with_extension(format!("{}.srt", language));
-        std::fs::write(&srt_path, &content)
-            .map_err(|e| format!("Error al guardar subtítulo: {}", e))?;
-        movie.set_subtitles_ready(true);
-        info!("Subtítulo guardado en: {:?}", srt_path);
-        Ok(Some(srt_path.to_string_lossy().to_string()))
+        download_subtitles_for_movie(&self.subtitles, movie, language).await
     }
 
     /// Descarga un póster y lo cachea localmente. Devuelve la ruta local.
@@ -220,6 +164,79 @@ impl MovieEnricher {
         movie.set_poster_path(path.clone());
         Ok(path)
     }
+}
+
+/// Busca y descarga subtítulos para una película usando un cliente de OpenSubtitles.
+///
+/// Función standalone para permitir su uso sin necesidad de un `MovieEnricher`
+/// completo (útil para descargas puntuales desde la UI).
+pub async fn download_subtitles_for_movie(
+    subtitles: &SubtitlesClient,
+    movie: &MovieObject,
+    language: &str,
+) -> Result<Option<String>, String> {
+    let path = movie.video_path();
+    if path.is_empty() {
+        return Ok(None);
+    }
+
+    let video_path = Path::new(&path);
+
+    let hash = match compute_opensubtitles_hash(video_path) {
+        Ok(h) => h,
+        Err(_) => {
+            debug!("No se pudo calcular hash, buscando por nombre");
+            let filename = video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
+            let results = subtitles
+                .search_by_name(filename, language, limited_year(movie.year()))
+                .await?;
+            if let Some(best) = results.first() {
+                return download_and_save_subtitle(
+                    subtitles, best, video_path, language, movie,
+                )
+                .await;
+            }
+            return Ok(None);
+        }
+    };
+
+    debug!("Hash calculado: {} (tamaño: {})", hash.hash, hash.size);
+
+    let results = subtitles.search_by_hash(&hash, language).await?;
+    let results = if results.is_empty() {
+        info!("Sin resultados por hash, buscando por nombre...");
+        let filename = video_path.file_stem().and_then(|f| f.to_str()).unwrap_or("");
+        subtitles
+            .search_by_name(filename, language, limited_year(movie.year()))
+            .await?
+    } else {
+        results
+    };
+
+    if let Some(best) = results.first() {
+        download_and_save_subtitle(subtitles, best, video_path, language, movie).await
+    } else {
+        info!("No se encontraron subtítulos en '{}'", language);
+        Ok(None)
+    }
+}
+
+/// Descarga el contenido de un subtítulo y lo guarda junto al archivo de video.
+async fn download_and_save_subtitle(
+    subtitles: &SubtitlesClient,
+    result: &crate::subtitles::SubtitleResult,
+    video_path: &Path,
+    language: &str,
+    movie: &MovieObject,
+) -> Result<Option<String>, String> {
+    info!("Descargando subtítulo: {}", result.filename);
+    let content = subtitles.download_subtitle(&result.download_url).await?;
+    let srt_path = video_path.with_extension(format!("{}.srt", language));
+    std::fs::write(&srt_path, &content)
+        .map_err(|e| format!("Error al guardar subtítulo: {}", e))?;
+    movie.set_subtitles_ready(true);
+    info!("Subtítulo guardado en: {:?}", srt_path);
+    Ok(Some(srt_path.to_string_lossy().to_string()))
 }
 
 fn limited_year(year: i32) -> Option<i32> {

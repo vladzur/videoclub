@@ -624,6 +624,12 @@ impl VideoclubWindow {
             movie.set_imdb_id(id.as_str());
         }
         movie.set_has_metadata(stored.has_metadata);
+        // Restaurar estado de subtítulos si el archivo aún existe en disco
+        if let Some(sub_path) = &stored.subtitle_path {
+            if std::path::Path::new(sub_path).exists() {
+                movie.set_subtitles_ready(true);
+            }
+        }
     }
 
     /// Busca en el catálogo el MovieObject con la ruta de video dada.
@@ -649,9 +655,12 @@ impl VideoclubWindow {
         let api_key = app.as_ref()
             .map(|a| a.omdb_api_key())
             .unwrap_or_default();
-        let opensubs_key = app
+        let opensubs_key = app.as_ref()
             .map(|a| a.opensubtitles_api_key())
             .unwrap_or_default();
+        let preferred_subtitle_language = app.as_ref()
+            .map(|a| a.preferred_subtitle_language())
+            .unwrap_or_else(|| "es".to_string());
 
         if api_key.is_empty() {
             log::info!("Sin API key de OMDb configurada, omitiendo enriquecimiento");
@@ -691,6 +700,7 @@ impl VideoclubWindow {
                     Ok(c) => c,
                     Err(e) => { log::error!("Error al inicializar OMDb: {}", e); return; }
                 };
+                let has_opensubs = !opensubs_key.is_empty();
                 let subtitles = match SubtitlesClient::new(opensubs_key) {
                     Ok(s) => s,
                     Err(e) => { log::warn!("Error al crear SubtitlesClient: {}", e); return; }
@@ -702,13 +712,26 @@ impl VideoclubWindow {
 
                 for (video_path, stored) in &stored_map {
                     let tmp_movie = MovieObject::from_video_path(video_path);
-                    let result = enricher
+                    let mut result = enricher
                         .enrich_metadata(&tmp_movie, stored.as_ref())
                         .await
                         .unwrap_or_else(|e| {
                             log::warn!("Error enriqueciendo '{}': {}", video_path, e);
                             StoredMetadata::new_pending("unknown", None)
                         });
+
+                    // Descargar subtítulos después del enriquecimiento de metadatos
+                    // (necesita que title/year estén establecidos para la búsqueda por nombre)
+                    if has_opensubs {
+                        result.subtitle_path = enricher
+                            .download_subtitles(&tmp_movie, &preferred_subtitle_language)
+                            .await
+                            .unwrap_or_else(|e| {
+                                log::warn!("Error descargando subtítulos para '{}': {}", video_path, e);
+                                None
+                            });
+                    }
+
                     if tx.send((video_path.clone(), result)).await.is_err() {
                         break;
                     }
@@ -724,6 +747,10 @@ impl VideoclubWindow {
                     // Actualizar el MovieObject real en el catálogo
                     if let Some(movie) = win.find_movie_by_path(&video_path) {
                         win.apply_stored_to_movie(&movie, &stored);
+                        // Marcar subtítulos como listos si se descargaron
+                        if stored.subtitle_path.is_some() {
+                            movie.set_subtitles_ready(true);
+                        }
                     }
                     // Guardar en el store
                     win.imp().metadata_store.borrow_mut().upsert(&video_path, stored);
@@ -738,6 +765,136 @@ impl VideoclubWindow {
     /// Re-enriquece una sola película (llamado desde el EditMovieDialog).
     pub fn enrich_single_movie(&self, movie: &MovieObject) {
         self.enrich_all_movies(vec![movie.clone()]);
+    }
+
+    /// Descarga subtítulos para una sola película (llamado desde el EditMovieDialog).
+    /// `on_done` se invoca en el hilo principal con `true` si la descarga tuvo éxito.
+    pub fn download_subtitles_single(
+        &self,
+        movie: &MovieObject,
+        on_done: impl FnOnce(bool) + 'static,
+    ) {
+        let app = self
+            .application()
+            .and_downcast::<crate::application::VideoclubApplication>();
+        let opensubs_key = app
+            .as_ref()
+            .map(|a| a.opensubtitles_api_key())
+            .unwrap_or_default();
+        let language = app
+            .as_ref()
+            .map(|a| a.preferred_subtitle_language())
+            .unwrap_or_else(|| "es".to_string());
+
+        if opensubs_key.is_empty() {
+            log::info!("Sin API key de OpenSubtitles configurada, omitiendo descarga de subtítulos");
+            glib::spawn_future_local(async move {
+                on_done(false);
+            });
+            return;
+        }
+
+        log::info!("Descargando subtítulos para '{}'...", movie.title());
+
+        // Extraer datos planos antes de mover al thread (MovieObject no es Send)
+        let video_path = movie.video_path().to_string();
+        let movie_year = movie.year();
+        let movie_for_result = movie.clone();
+
+        // Canal: el thread envía el subtitle_path (o None si falló)
+        let (tx, rx) = async_channel::bounded::<Option<String>>(1);
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let Ok(rt) = rt else {
+            log::error!("No se pudo crear runtime tokio");
+            glib::spawn_future_local(async move {
+                on_done(false);
+            });
+            return;
+        };
+
+        let video_path_clone = video_path.clone();
+        std::thread::spawn(move || {
+            rt.block_on(async move {
+                use videoclub_core::subtitles::SubtitlesClient;
+
+                // Construir el resultado en todos los caminos para garantizar que tx.send() se ejecute
+                let result = {
+                    let subtitles = match SubtitlesClient::new(opensubs_key) {
+                        Ok(s) => Some(s),
+                        Err(e) => {
+                            log::warn!("Error al crear SubtitlesClient: {}", e);
+                            None
+                        }
+                    };
+
+                    match subtitles {
+                        Some(subtitles) => {
+                            // Crear MovieObject dentro del thread (no cruza el límite Send)
+                            let tmp_movie = MovieObject::from_video_path(&video_path_clone);
+                            if movie_year > 0 {
+                                tmp_movie.set_year(movie_year);
+                            }
+
+                            videoclub_core::enricher::download_subtitles_for_movie(
+                                &subtitles,
+                                &tmp_movie,
+                                &language,
+                            )
+                            .await
+                            .unwrap_or_else(|e| {
+                                log::warn!(
+                                    "Error descargando subtítulos para '{}': {}",
+                                    video_path_clone,
+                                    e
+                                );
+                                None
+                            })
+                        }
+                        None => None,
+                    }
+                };
+
+                let _ = tx.send(result).await;
+            });
+        });
+
+        // Recibir resultado y actualizar MovieObject + store en el hilo principal
+        glib::spawn_future_local(glib::clone!(
+            #[weak(rename_to = win)] self,
+            async move {
+                let subtitle_path = rx.recv().await.ok().flatten();
+
+                if let Some(ref path) = subtitle_path {
+                    movie_for_result.set_subtitles_ready(true);
+                    log::info!("Subtítulos descargados: {}", path);
+                }
+
+                // Actualizar el store con la ruta del subtítulo
+                let mut store = win.imp().metadata_store.borrow_mut();
+                if let Some(existing) = store.get(&video_path).cloned() {
+                    let mut updated = existing.clone();
+                    updated.subtitle_path = subtitle_path.clone();
+                    store.upsert(&video_path, updated);
+                } else if subtitle_path.is_some() {
+                    let mut meta = videoclub_core::metadata_store::StoredMetadata::new_pending(
+                        &movie_for_result.title(),
+                        if movie_for_result.year() > 0 {
+                            Some(movie_for_result.year())
+                        } else {
+                            None
+                        },
+                    );
+                    meta.subtitle_path = subtitle_path.clone();
+                    store.upsert(&video_path, meta);
+                }
+                store.save();
+
+                on_done(subtitle_path.is_some());
+            }
+        ));
     }
 
     // ─── Drag-and-Drop ────────────────────────────────────────────────────────
