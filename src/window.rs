@@ -21,7 +21,7 @@ use crate::widgets::video_widget::VideoWidget;
 
 /// Modo de ordenamiento del catálogo de películas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SortMode {
+pub enum SortMode {
     /// Sin ordenamiento (orden de escaneo original).
     None,
     /// Orden alfabético A–Z.
