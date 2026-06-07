@@ -13,9 +13,18 @@ use videoclub_core::settings::AppSettings;
 
 const LANGUAGE_CODES: &[&str] = &["es", "en", "fr", "pt", "de", "it"];
 
+/// Convierte un código ISO 639-1 a su nombre traducido según el locale activo.
+/// Retorna `None` si el código no está en `LANGUAGE_CODES`.
+pub(crate) fn language_code_to_name(code: &str) -> Option<String> {
+    LANGUAGE_CODES
+        .iter()
+        .position(|&c| c == code)
+        .map(|idx| language_names()[idx].clone())
+}
+
 /// Devuelve los nombres de idioma traducidos según el locale activo.
 /// El orden se corresponde 1:1 con `LANGUAGE_CODES`.
-fn language_names() -> Vec<String> {
+pub(crate) fn language_names() -> Vec<String> {
     vec![
         gettext("Spanish"),
         gettext("English"),

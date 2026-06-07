@@ -4,6 +4,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::cell::RefCell;
 use std::rc::Rc;
 use gtk::gdk;
 
@@ -18,7 +19,7 @@ use super::events::PlaybackState;
 pub struct PlaybackController {
     pipeline: Rc<PlaybackPipeline>,
     /// Inhibidor de screensaver: se activa en `play()` y se libera en `stop()`.
-    inhibitor: std::cell::RefCell<ScreensaverInhibitor>,
+    inhibitor: RefCell<ScreensaverInhibitor>,
 }
 
 impl PlaybackController {
@@ -26,7 +27,7 @@ impl PlaybackController {
         let pipeline = Rc::new(PlaybackPipeline::new()?);
         Ok(Self {
             pipeline,
-            inhibitor: std::cell::RefCell::new(ScreensaverInhibitor::new()),
+            inhibitor: RefCell::new(ScreensaverInhibitor::new()),
         })
     }
 
@@ -38,6 +39,12 @@ impl PlaybackController {
     /// Carga un archivo de video.
     pub fn load(&self, path: &str) -> Result<(), String> {
         self.pipeline.load_file(path)
+    }
+
+    /// Carga un archivo de subtítulos externo.
+    /// Si `path` está vacío, desactiva los subtítulos.
+    pub fn set_subtitle_uri(&self, path: &str) {
+        self.pipeline.set_subtitle_uri(path);
     }
 
     /// Inicia la reproducción. También inhibe el screensaver vía D-Bus.

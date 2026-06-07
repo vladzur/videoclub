@@ -16,6 +16,13 @@
               <class name="video-header"/>
             </style>
             <child type="end">
+              <object class="GtkMenuButton" id="subtitle_button">
+                <property name="label">CC</property>
+                <property name="tooltip-text" translatable="yes">Subtitles</property>
+                <property name="visible">False</property>
+              </object>
+            </child>
+            <child type="end">
               <object class="GtkButton" id="fullscreen_button">
                 <property name="icon-name">view-fullscreen-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Toggle fullscreen</property>
@@ -34,6 +41,17 @@
                 <property name="content-fit">contain</property>
                 <property name="hexpand">true</property>
                 <property name="vexpand">true</property>
+              </object>
+            </child>
+            <child type="overlay">
+              <object class="GtkLabel" id="subtitle_label">
+                <property name="valign">end</property>
+                <property name="halign">center</property>
+                <property name="margin-bottom">40</property>
+                <property name="wrap">true</property>
+                <property name="justify">center</property>
+                <property name="use-markup">true</property>
+                <property name="visible">false</property>
               </object>
             </child>
             <child type="overlay">

@@ -6,14 +6,68 @@
  */
 
 use std::cell::RefCell;
+use std::path::Path;
 use std::time::Duration;
-
 use gtk::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::{glib, gio};
 
 use crate::player::controller::PlaybackController;
 use crate::player::events::PlaybackState;
+
+#[derive(Debug, Clone)]
+pub struct SubtitleEntry {
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub text: String,
+}
+
+fn decode_srt_bytes(bytes: &[u8]) -> String {
+    // Intentar decodificar como UTF-8 puro primero
+    if let Ok(utf8) = std::str::from_utf8(bytes) {
+        return utf8.to_string();
+    }
+    
+    // Si falla, es muy probable que sea Latin-1 / Windows-1252 (muy común en subtítulos en español).
+    // Para los caracteres del español (á, é, í, ó, ú, ñ, ¿, ¡), ISO-8859-1 mapea directamente
+    // a los primeros 256 code points de Unicode, así que una conversión directa byte -> char funciona.
+    bytes.iter().map(|&b| b as char).collect()
+}
+
+fn parse_srt_time(time_str: &str) -> u64 {
+    let clean_str = time_str.replace(',', ".");
+    let parts: Vec<&str> = clean_str.split(':').collect();
+    if parts.len() == 3 {
+        let h: u64 = parts[0].trim().parse().unwrap_or(0);
+        let m: u64 = parts[1].trim().parse().unwrap_or(0);
+        let s_parts: Vec<&str> = parts[2].trim().split('.').collect();
+        let s: u64 = s_parts[0].parse().unwrap_or(0);
+        let ms: u64 = if s_parts.len() > 1 { s_parts[1].parse().unwrap_or(0) } else { 0 };
+        return (h * 3600 + m * 60 + s) * 1000 + ms;
+    }
+    0
+}
+
+fn parse_srt(contents: &str) -> Vec<SubtitleEntry> {
+    let mut entries = Vec::new();
+    let blocks = contents.replace("\r\n", "\n");
+    for block in blocks.split("\n\n") {
+        let mut lines = block.lines();
+        let _id = lines.next();
+        if let Some(time_line) = lines.next() {
+            let parts: Vec<&str> = time_line.split(" --> ").collect();
+            if parts.len() == 2 {
+                let start = parse_srt_time(parts[0]);
+                let end = parse_srt_time(parts[1]);
+                let text = lines.collect::<Vec<&str>>().join("\n");
+                
+                let safe_text = text.replace("<font", "<span").replace("</font>", "</span>");
+                entries.push(SubtitleEntry { start_ms: start, end_ms: end, text: safe_text });
+            }
+        }
+    }
+    entries
+}
 
 mod imp {
     use super::*;
@@ -51,13 +105,24 @@ mod imp {
         #[template_child]
         pub volume_button: TemplateChild<gtk::ScaleButton>,
 
+        #[template_child]
+        pub subtitle_button: TemplateChild<gtk::MenuButton>,
+
+        #[template_child]
+        pub subtitle_label: TemplateChild<gtk::Label>,
+
         pub controller: RefCell<Option<PlaybackController>>,
         pub updating_scale: std::cell::Cell<bool>,
         pub player_window: RefCell<Option<gtk::Window>>,
-        /// Contador de ticks de 500ms sin movimiento de mouse en fullscreen.
         pub fullscreen_idle_ticks: std::cell::Cell<u32>,
-        /// Última posición registrada del puntero (para filtrar eventos sintéticos de X11).
         pub last_mouse_pos: std::cell::Cell<(f64, f64)>,
+
+        pub video_path: RefCell<String>,
+        pub preferred_subtitle_lang: RefCell<String>,
+        pub subtitle_paths: RefCell<Vec<String>>,
+        pub parsed_subtitles: RefCell<Vec<SubtitleEntry>>,
+        pub subtitle_timer: RefCell<Option<gtk::glib::SourceId>>,
+        pub current_subtitle_text: RefCell<String>,
     }
 
     #[glib::object_subclass]
@@ -77,12 +142,31 @@ mod imp {
     }
 
     impl ObjectImpl for VideoWidget {
+        fn constructed(&self) {
+            self.parent_constructed();
+            
+            let obj = self.obj();
+            let timer_id = gtk::glib::timeout_add_local(
+                std::time::Duration::from_millis(100), 
+                glib::clone!(
+                    #[weak] obj,
+                    #[upgrade_or] gtk::glib::ControlFlow::Break,
+                    move || {
+                        obj.update_native_subtitles();
+                        gtk::glib::ControlFlow::Continue
+                    }
+                )
+            );
+            self.subtitle_timer.replace(Some(timer_id));
+        }
+
         fn dispose(&self) {
-            // Detener reproducción al destruir el widget
+            if let Some(timer) = self.subtitle_timer.borrow_mut().take() {
+                timer.remove();
+            }
             if let Some(ctrl) = self.controller.borrow().as_ref() {
                 let _ = ctrl.stop();
             }
-            // Eliminar hijos del template
             while let Some(child) = self.obj().first_child() {
                 child.unparent();
             }
@@ -102,19 +186,16 @@ impl VideoWidget {
         glib::Object::new()
     }
 
-    /// Vincula un `PlaybackController` al widget y conecta todos los controles.
-    pub fn setup_player(&self, controller: PlaybackController) {
+    pub fn setup_player(&self, controller: PlaybackController, video_path: &str) {
         let imp = self.imp();
 
-        // Conectar el paintable del video al Picture
         if let Some(paintable) = controller.paintable() {
             imp.picture.set_paintable(Some(&paintable));
         }
 
-        // Guardar el controlador
+        imp.video_path.replace(video_path.to_string());
         imp.controller.replace(Some(controller));
 
-        // --- Botón play/pausa ---
         imp.play_button.connect_clicked(glib::clone!(
             #[weak(rename_to = widget)] self,
             move |_| {
@@ -122,12 +203,10 @@ impl VideoWidget {
                 if let Some(ctrl) = imp.controller.borrow().as_ref() {
                     let _ = ctrl.toggle_play_pause();
                 }
-                // Actualizar ícono FUERA del borrow para que el Ref sea liberado
                 widget.update_play_icon();
             }
         ));
 
-        // --- Barra de progreso: seek al soltar ---
         imp.progress_scale.connect_change_value(glib::clone!(
             #[weak(rename_to = widget)] self,
             #[upgrade_or] glib::Propagation::Proceed,
@@ -142,7 +221,6 @@ impl VideoWidget {
             }
         ));
 
-        // --- Timer: actualizar posición cada 500 ms ---
         glib::timeout_add_local(Duration::from_millis(500), glib::clone!(
             #[weak(rename_to = widget)] self,
             #[upgrade_or] glib::ControlFlow::Break,
@@ -152,7 +230,6 @@ impl VideoWidget {
             }
         ));
 
-        // --- Botón pantalla completa ---
         imp.fullscreen_button.connect_clicked(glib::clone!(
             #[weak(rename_to = widget)] self,
             move |_| {
@@ -160,8 +237,6 @@ impl VideoWidget {
             }
         ));
 
-        // --- Control de volumen ---
-        // Iconos: [mute, máximo, bajo, medio] — se selecciona según el valor actual
         imp.volume_button.set_icons(&[
             "audio-volume-muted-symbolic",
             "audio-volume-high-symbolic",
@@ -175,14 +250,150 @@ impl VideoWidget {
                 widget.set_volume(value);
             }
         ));
+
+        self.populate_subtitle_selector();
     }
 
-    /// Llamar desde el motion controller de la ventana.
-    /// Filtra eventos sintéticos de X11 comparando la posición anterior.
+    fn populate_subtitle_selector(&self) {
+        let imp = self.imp();
+        let video_path = imp.video_path.borrow();
+        
+        if video_path.is_empty() {
+            return;
+        }
+
+        let srt_files = scan_subtitle_files(&video_path);
+
+        if srt_files.is_empty() {
+            imp.subtitle_button.set_visible(false);
+            return;
+        }
+
+        let action_group = gio::SimpleActionGroup::new();
+        self.insert_action_group("subtitle", Some(&action_group));
+
+        let action = gio::SimpleAction::new_stateful(
+            "set",
+            Some(&String::static_variant_type()),
+            &String::new().to_variant(),
+        );
+
+        action.connect_activate(glib::clone!(
+            #[weak(rename_to = video_widget)] self,
+            move |action, parameter| {
+                if let Some(variant) = parameter {
+                    action.change_state(variant);
+                    if let Some(path) = variant.get::<String>() {
+                        let imp = video_widget.imp();
+                    if path.is_empty() {
+                        imp.parsed_subtitles.borrow_mut().clear();
+                        imp.subtitle_label.set_visible(false);
+                    } else {
+                        match std::fs::read(&path) {
+                            Ok(bytes) => {
+                                let contents = decode_srt_bytes(&bytes);
+                                let subs = parse_srt(&contents);
+                                println!("GTK Subtitles: Parseados {} bloques de '{}'", subs.len(), path);
+                                *imp.parsed_subtitles.borrow_mut() = subs;
+                            }
+                            Err(e) => {
+                                println!("GTK Subtitles: ERROR fatal al leer srt '{}': {}", path, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }));
+        action_group.add_action(&action);
+
+        let menu = gio::Menu::new();
+        let section = gio::Menu::new();
+
+        let none_item = gio::MenuItem::new(Some(&gettextrs::gettext("None")), Some("subtitle.set"));
+        none_item.set_action_and_target_value(Some("subtitle.set"), Some(&String::new().to_variant()));
+        section.append_item(&none_item);
+
+        let preferred = imp.preferred_subtitle_lang.borrow();
+        let mut auto_select_path: Option<String> = None;
+
+        for srt in srt_files.iter() {
+            let label_text = srt
+                .language_code
+                .as_deref()
+                .and_then(|c| if c.is_empty() { None } else { Some(c) })
+                .and_then(crate::preferences_dialog::language_code_to_name)
+                .unwrap_or_else(|| srt.filename.clone());
+
+            let item = gio::MenuItem::new(Some(&label_text), Some("subtitle.set"));
+            item.set_action_and_target_value(Some("subtitle.set"), Some(&srt.path.to_variant()));
+            section.append_item(&item);
+
+            if auto_select_path.is_none() {
+                if srt.language_code.as_deref() == Some(&*preferred) {
+                    auto_select_path = Some(srt.path.clone());
+                } else if preferred.is_empty() {
+                    auto_select_path = Some(srt.path.clone());
+                }
+            }
+        }
+        
+        if auto_select_path.is_none() && !srt_files.is_empty() {
+            auto_select_path = Some(srt_files[0].path.clone());
+        }
+
+        menu.append_section(None, &section);
+        imp.subtitle_button.set_menu_model(Some(&menu));
+
+        if let Some(path) = auto_select_path {
+            action.change_state(&path.to_variant());
+        }
+
+        imp.subtitle_button.set_visible(true);
+    }
+
+    fn update_native_subtitles(&self) {
+        let imp = self.imp();
+        if let Some(ctrl) = imp.controller.borrow().as_ref() {
+            if ctrl.state() == PlaybackState::Playing {
+                let pos_ms = ctrl.position_seconds() * 1000.0;
+                let subs = imp.parsed_subtitles.borrow();
+                let mut active_text = String::new();
+                
+                for sub in subs.iter() {
+                    if pos_ms >= sub.start_ms as f64 && pos_ms <= sub.end_ms as f64 {
+                        active_text = sub.text.clone();
+                        break;
+                    }
+                    if sub.start_ms as f64 > pos_ms {
+                        break;
+                    }
+                }
+                
+                let mut current = imp.current_subtitle_text.borrow_mut();
+                if *current != active_text {
+                    *current = active_text.clone();
+                    if !active_text.is_empty() {
+                        let markup = format!("<span background=\"#000000A0\" foreground=\"white\" size=\"xx-large\"><b>{}</b></span>", active_text);
+                        imp.subtitle_label.set_markup(&markup);
+                        imp.subtitle_label.set_visible(true);
+                        // Imprime en terminal solo cuando cambia el subtítulo para evitar spam
+                        println!("GTK Subtitles -> [{}]", active_text.replace('\n', " | "));
+                    } else {
+                        imp.subtitle_label.set_visible(false);
+                        imp.subtitle_label.set_label("");
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn set_preferred_subtitle_language(&self, lang: &str) {
+        self.imp().preferred_subtitle_lang.replace(lang.to_string());
+    }
+
     pub fn on_pointer_motion(&self, x: f64, y: f64) {
         let imp = self.imp();
         let (last_x, last_y) = imp.last_mouse_pos.get();
-        // Ignorar eventos sintéticos: posición sin cambio real (>2px)
         if (x - last_x).abs() < 2.0 && (y - last_y).abs() < 2.0 {
             return;
         }
@@ -192,8 +403,6 @@ impl VideoWidget {
         self.set_cursor(None);
     }
 
-
-    /// Actualiza la barra de progreso y la etiqueta de tiempo.
     fn update_position(&self) {
         let imp = self.imp();
         let borrow = imp.controller.borrow();
@@ -217,7 +426,6 @@ impl VideoWidget {
 
         self.update_play_icon();
 
-        // Auto-ocultar controles en fullscreen tras 3s de inactividad (6 ticks * 500ms)
         let is_fullscreen = imp.player_window.borrow()
             .as_ref()
             .map(|w| w.is_fullscreen())
@@ -238,7 +446,6 @@ impl VideoWidget {
         }
     }
 
-    /// Actualiza el ícono del botón play/pausa según el estado actual.
     fn update_play_icon(&self) {
         let imp = self.imp();
         let borrow = imp.controller.borrow();
@@ -251,17 +458,14 @@ impl VideoWidget {
         }
     }
 
-    /// Vincula la ventana del reproductor para operaciones de fullscreen.
     pub fn set_player_window(&self, window: &gtk::Window) {
         *self.imp().player_window.borrow_mut() = Some(window.clone());
     }
 
-    /// Limpia la referencia a la ventana (llamar al cerrar para romper ciclo).
     pub fn clear_player_window(&self) {
         *self.imp().player_window.borrow_mut() = None;
     }
 
-    /// Detiene el pipeline GStreamer. Llamar antes de cerrar la ventana.
     pub fn stop_playback(&self) {
         let borrow = self.imp().controller.borrow();
         if let Some(ctrl) = borrow.as_ref() {
@@ -269,7 +473,6 @@ impl VideoWidget {
         }
     }
 
-    /// Ajusta el volumen del pipeline (0.0 = mute, 1.0 = máximo).
     pub fn set_volume(&self, volume: f64) {
         let borrow = self.imp().controller.borrow();
         if let Some(ctrl) = borrow.as_ref() {
@@ -277,29 +480,17 @@ impl VideoWidget {
         }
     }
 
-    /// Alterna entre pantalla completa y ventana normal.
     fn toggle_fullscreen(&self) {
         let borrowed = self.imp().player_window.borrow();
-        log::debug!("toggle_fullscreen: player_window is_some={}", borrowed.is_some());
+        let Some(window) = borrowed.as_ref() else { return };
 
-        let Some(window) = borrowed.as_ref() else {
-            log::warn!("toggle_fullscreen: no hay ventana registrada");
-            return;
-        };
-
-        let currently = window.is_fullscreen();
-        log::debug!("toggle_fullscreen: is_fullscreen antes={}", currently);
-
-        if currently {
+        if window.is_fullscreen() {
             window.unfullscreen();
         } else {
             window.fullscreen();
         }
-
-        log::debug!("toggle_fullscreen: is_fullscreen después={}", window.is_fullscreen());
     }
 
-    /// Actualiza el ícono y visibilidad del header bar según el estado de fullscreen.
     pub fn update_fullscreen_icon(&self) {
         let imp = self.imp();
         let is_fullscreen = imp.player_window.borrow()
@@ -334,6 +525,82 @@ impl Default for VideoWidget {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Archivo de subtítulos encontrado junto a un video.
+struct SubtitleFile {
+    /// Ruta completa al archivo .srt.
+    path: String,
+    /// Nombre del archivo (sin ruta) para mostrar.
+    filename: String,
+    /// Código de idioma extraído del nombre (ej. "es"), o None.
+    language_code: Option<String>,
+}
+
+/// Escanea el directorio del video en busca de archivos `.srt`
+/// con el patrón `{video_stem}.{lang}.srt`.
+///
+/// También detecta archivos `.srt` con cualquier sufijo de idioma.
+fn scan_subtitle_files(video_path: &str) -> Vec<SubtitleFile> {
+    let video = Path::new(video_path);
+    let Some(parent) = video.parent() else {
+        return Vec::new();
+    };
+    let stem = video.file_stem().unwrap_or_default().to_string_lossy();
+
+    // Códigos de idioma conocidos (mismos que en preferences_dialog)
+    let known_codes = &["es", "en", "fr", "pt", "de", "it"];
+
+    let mut results = Vec::new();
+
+    // Buscar archivos con el patrón: {stem}.{lang}.srt para idiomas conocidos
+    for &code in known_codes {
+        let candidate = parent.join(format!("{}.{}.srt", stem, code));
+        if candidate.exists() {
+            results.push(SubtitleFile {
+                path: candidate.to_string_lossy().to_string(),
+                filename: candidate
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+                language_code: Some(code.to_string()),
+            });
+        }
+    }
+
+    // También buscar cualquier otro {stem}.*.srt que no coincida con los conocidos
+    if let Ok(entries) = std::fs::read_dir(parent) {
+        let prefix = format!("{}.", stem);
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(&prefix) && name.ends_with(".srt") {
+                // Extraer el código de idioma: {stem}.{maybe_code}.srt
+                let code = {
+                    let middle = &name[prefix.len()..];
+                    let extracted = middle.strip_suffix(".srt").unwrap_or(middle);
+                    if extracted.is_empty() {
+                        None // sin código de idioma (ej. "movie.srt")
+                    } else {
+                        Some(extracted.to_string())
+                    }
+                };
+                // Si ya lo agregamos como idioma conocido, saltar
+                if let Some(ref c) = code {
+                    if known_codes.contains(&c.as_str()) {
+                        continue;
+                    }
+                }
+                results.push(SubtitleFile {
+                    path: entry.path().to_string_lossy().to_string(),
+                    filename: name,
+                    language_code: code,
+                });
+            }
+        }
+    }
+
+    results
 }
 
 /// Formatea segundos como MM:SS.
