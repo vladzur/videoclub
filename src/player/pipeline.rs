@@ -15,8 +15,6 @@ use super::events::PlaybackState;
 pub struct PlaybackPipeline {
     /// Elemento principal del pipeline.
     playbin: gstreamer::Element,
-    /// Bus de mensajes de GStreamer para monitorear el estado.
-    bus: gstreamer::Bus,
     /// Estado actual del pipeline.
     state: std::cell::Cell<PlaybackState>,
     /// Sink de video (gtk4paintablesink si está disponible).
@@ -69,11 +67,8 @@ impl PlaybackPipeline {
             }
         }
 
-        let bus = playbin.bus().expect("playbin debe tener un bus");
-
         Ok(Self {
             playbin,
-            bus,
             state: std::cell::Cell::new(PlaybackState::Stopped),
             video_sink,
         })
@@ -139,14 +134,8 @@ impl PlaybackPipeline {
         Ok(())
     }
 
-    /// Ajusta el volumen de reproducción (0.0 a 1.0).
     pub fn set_volume(&self, volume: f64) {
         self.playbin.set_property("volume", volume.clamp(0.0, 1.0));
-    }
-
-    /// Devuelve el volumen actual (0.0 - 1.0).
-    pub fn volume(&self) -> f64 {
-        self.playbin.property::<f64>("volume")
     }
 
     /// Devuelve la posición actual de reproducción en segundos, o 0.
@@ -165,30 +154,10 @@ impl PlaybackPipeline {
             .unwrap_or(0.0)
     }
 
-    /// Referencia al bus de GStreamer para monitoreo de eventos.
-    pub fn bus(&self) -> &gstreamer::Bus {
-        &self.bus
-    }
-
-    /// Referencia al elemento playbin3.
-    pub fn element(&self) -> &gstreamer::Element {
-        &self.playbin
-    }
-
-    /// Devuelve el Paintable de gtk4paintablesink si está disponible.
     pub fn video_paintable(&self) -> Option<gdk::Paintable> {
         self.video_sink
             .as_ref()
             .and_then(|sink| sink.property::<Option<gdk::Paintable>>("paintable"))
-    }
-
-    /// Configura la tipografía de los subtítulos usando una descripción de fuente Pango.
-    ///
-    /// Ejemplos: `"Sans 16"`, `"DejaVu Serif Bold 20"`, `"Monospace 14"`.
-    /// La fuente se aplica al elemento `textrender` interno de playbin3.
-    pub fn set_subtitle_font(&self, font_desc: &str) {
-        self.playbin.set_property("subtitle-font-desc", font_desc);
-        info!("Fuente de subtítulos configurada: {}", font_desc);
     }
 }
 
