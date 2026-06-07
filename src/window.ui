@@ -12,6 +12,13 @@
           <object class="AdwHeaderBar" id="header_bar">
             <property name="show-title">true</property>
             <child type="start">
+              <!-- Botón de ordenamiento -->
+              <object class="GtkMenuButton" id="sort_button">
+                <property name="icon-name">view-sort-ascending-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Sort movies</property>
+              </object>
+            </child>
+            <child type="start">
               <!-- Botón de búsqueda -->
               <object class="GtkToggleButton" id="search_button">
                 <property name="icon-name">system-search-symbolic</property>
