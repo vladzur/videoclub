@@ -4,6 +4,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::cell::RefCell;
 use std::rc::Rc;
 use gtk::gdk;
 
@@ -18,7 +19,7 @@ use super::events::PlaybackState;
 pub struct PlaybackController {
     pipeline: Rc<PlaybackPipeline>,
     /// Inhibidor de screensaver: se activa en `play()` y se libera en `stop()`.
-    inhibitor: std::cell::RefCell<ScreensaverInhibitor>,
+    inhibitor: RefCell<ScreensaverInhibitor>,
 }
 
 impl PlaybackController {
@@ -26,7 +27,7 @@ impl PlaybackController {
         let pipeline = Rc::new(PlaybackPipeline::new()?);
         Ok(Self {
             pipeline,
-            inhibitor: std::cell::RefCell::new(ScreensaverInhibitor::new()),
+            inhibitor: RefCell::new(ScreensaverInhibitor::new()),
         })
     }
 
@@ -39,6 +40,8 @@ impl PlaybackController {
     pub fn load(&self, path: &str) -> Result<(), String> {
         self.pipeline.load_file(path)
     }
+
+
 
     /// Inicia la reproducción. También inhibe el screensaver vía D-Bus.
     pub fn play(&self) -> Result<(), String> {
@@ -87,9 +90,4 @@ impl PlaybackController {
         self.pipeline.set_volume(volume);
     }
 
-    /// Configura la fuente de los subtítulos.
-    /// `font_desc` es una descripción de fuente Pango (ej. "Sans 18").
-    pub fn set_subtitle_font(&self, font_desc: &str) {
-        self.pipeline.set_subtitle_font(font_desc);
-    }
 }

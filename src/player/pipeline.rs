@@ -5,13 +5,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use gtk::gdk;
+use gtk::prelude::*;
 use gstreamer::prelude::*;
 use log::{error, info, warn};
 
 use super::events::PlaybackState;
 
 /// Representa el pipeline de reproducción de GStreamer.
-#[allow(dead_code)]
 pub struct PlaybackPipeline {
     /// Elemento principal del pipeline.
     playbin: gstreamer::Element,
@@ -23,7 +23,6 @@ pub struct PlaybackPipeline {
     video_sink: Option<gstreamer::Element>,
 }
 
-#[allow(dead_code)]
 impl PlaybackPipeline {
     /// Crea un nuevo pipeline de reproducción listo para usar.
     ///
@@ -33,9 +32,17 @@ impl PlaybackPipeline {
         gstreamer::init()
             .map_err(|e| format!("Failed to initialize GStreamer: {}", e))?;
 
-        let playbin = gstreamer::ElementFactory::make("playbin3")
+        // Usamos playbin en lugar de playbin3 porque playbin (v2) tiene un soporte
+        // mucho más robusto para inyectar subtítulos externos en caliente con suburi
+        // sin necesidad de manipular GstStreamCollection manualmente.
+        let playbin = gstreamer::ElementFactory::make("playbin")
             .build()
-            .map_err(|e| format!("Failed to create playbin3: {}", e))?;
+            .map_err(|e| format!("Failed to create playbin: {}", e))?;
+
+        // Banderas para asegurar que el pipeline construya video y audio.
+        // Omitimos intencionalmente 'text' para que GStreamer NO renderice subtítulos embebidos 
+        // ni auto-detectados, garantizando que solo nuestra capa GTK nativa los muestre.
+        playbin.set_property_from_str("flags", "video+audio+soft-volume");
 
         // Intentar configurar gtk4paintablesink para integración nativa con GTK4
         let video_sink = match gstreamer::ElementFactory::make("gtk4paintablesink").build() {
@@ -62,7 +69,7 @@ impl PlaybackPipeline {
             }
         }
 
-        let bus = playbin.bus().expect("playbin3 debe tener un bus");
+        let bus = playbin.bus().expect("playbin debe tener un bus");
 
         Ok(Self {
             playbin,
@@ -74,8 +81,8 @@ impl PlaybackPipeline {
 
     /// Carga un archivo de video desde una ruta local.
     pub fn load_file(&self, path: &str) -> Result<(), String> {
-        let uri = format!("file://{}", path);
-        self.playbin.set_property("uri", &uri);
+        let uri = gtk::gio::File::for_path(path).uri();
+        self.playbin.set_property("uri", uri.as_str());
         info!("Archivo cargado: {}", uri);
         Ok(())
     }
@@ -173,26 +180,6 @@ impl PlaybackPipeline {
         self.video_sink
             .as_ref()
             .and_then(|sink| sink.property::<Option<gdk::Paintable>>("paintable"))
-    }
-
-    /// Obtiene el número de pistas de subtítulos disponibles.
-    pub fn subtitle_track_count(&self) -> i32 {
-        self.playbin.property::<i32>("n-subtitle")
-    }
-
-    /// Selecciona la pista de subtítulos por índice.
-    pub fn set_subtitle_track(&self, index: i32) {
-        self.playbin.set_property("current-subtitle", index);
-    }
-
-    /// Obtiene el número de pistas de audio disponibles.
-    pub fn audio_track_count(&self) -> i32 {
-        self.playbin.property::<i32>("n-audio")
-    }
-
-    /// Selecciona la pista de audio por índice.
-    pub fn set_audio_track(&self, index: i32) {
-        self.playbin.set_property("current-audio", index);
     }
 
     /// Configura la tipografía de los subtítulos usando una descripción de fuente Pango.

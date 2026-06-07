@@ -309,19 +309,28 @@ impl VideoclubWindow {
             log::error!("Error cargando '{}': {}", path, e); return;
         }
 
-        // Aplicar la fuente de subtítulos configurada en Preferencias
+        let video_widget = VideoWidget::new();
+
+        // Aplicar la fuente de subtítulos configurada en Preferencias a nuestra capa GTK nativa
         if let Some(app) = self.application() {
             if let Ok(app) = app.downcast::<crate::application::VideoclubApplication>() {
                 let font = app.imp().settings.subtitle_font_desc();
-                controller.set_subtitle_font(&font);
+                video_widget.set_subtitle_font(&font);
             }
         }
 
-        let video_widget = VideoWidget::new();
         video_widget.set_hexpand(true);
         video_widget.set_vexpand(true);
         let _ = controller.play();
-        video_widget.setup_player(controller);
+        // Pasar idioma preferido ANTES de setup_player para auto-selección
+        if let Some(app) = self.application() {
+            if let Ok(app) = app.downcast::<crate::application::VideoclubApplication>() {
+                let lang = app.imp().settings.preferred_subtitle_language();
+                video_widget.set_preferred_subtitle_language(&lang);
+            }
+        }
+
+        video_widget.setup_player(controller, &path);
 
         // ── adw::Window: integración correcta con libadwaita ──────────────────
         // gtk::Window + AdwHeaderBar = doble frame (CSD propio del WM + AdwHeaderBar)
