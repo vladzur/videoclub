@@ -42,6 +42,18 @@ mod imp {
         #[property(get, set, name = "synopsis")]
         synopsis: std::cell::RefCell<String>,
 
+        /// Puntuación de IMDb (ej: "8.8").
+        #[property(get, set, name = "rating")]
+        rating: std::cell::RefCell<String>,
+
+        /// Género (ej: "Action, Sci-Fi").
+        #[property(get, set, name = "genre")]
+        genre: std::cell::RefCell<String>,
+
+        /// Duración (ej: "136 min").
+        #[property(get, set, name = "runtime")]
+        runtime: std::cell::RefCell<String>,
+
         /// Indica si los subtítulos ya están disponibles localmente.
         #[property(get, set, name = "subtitles-ready")]
         subtitles_ready: std::cell::RefCell<bool>,

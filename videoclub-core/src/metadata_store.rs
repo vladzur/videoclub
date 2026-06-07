@@ -36,6 +36,15 @@ pub struct StoredMetadata {
     /// ID de IMDb (ej: "tt0133093").
     pub imdb_id: Option<String>,
 
+    /// Puntuación de IMDb (ej: "8.8").
+    pub imdb_rating: Option<String>,
+
+    /// Género (ej: "Action, Sci-Fi").
+    pub genre: Option<String>,
+
+    /// Duración (ej: "136 min").
+    pub runtime: Option<String>,
+
     /// `true` si los metadatos provienen de OMDb o fueron introducidos manualmente.
     /// Las películas con `has_metadata: true` no se re-fetchan en un Refresh Library.
     pub has_metadata: bool,
@@ -55,6 +64,9 @@ impl StoredMetadata {
             synopsis: None,
             poster_path: None,
             imdb_id: None,
+            imdb_rating: None,
+            genre: None,
+            runtime: None,
             has_metadata: false,
             subtitle_path: None,
         }
@@ -159,6 +171,9 @@ impl MetadataStore {
             entry.synopsis = None;
             entry.poster_path = None;
             entry.imdb_id = None;
+            entry.imdb_rating = None;
+            entry.genre = None;
+            entry.runtime = None;
             entry.subtitle_path = None;
         }
     }

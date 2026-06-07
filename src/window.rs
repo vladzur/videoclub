@@ -849,6 +849,15 @@ impl VideoclubWindow {
         if let Some(id) = &stored.imdb_id {
             movie.set_imdb_id(id.as_str());
         }
+        if let Some(rating) = &stored.imdb_rating {
+            movie.set_rating(rating.as_str());
+        }
+        if let Some(genre) = &stored.genre {
+            movie.set_genre(genre.as_str());
+        }
+        if let Some(runtime) = &stored.runtime {
+            movie.set_runtime(runtime.as_str());
+        }
         movie.set_has_metadata(stored.has_metadata);
         // Restaurar estado de subtítulos si el archivo aún existe en disco
         if let Some(sub_path) = &stored.subtitle_path {
