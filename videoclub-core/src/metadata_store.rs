@@ -39,6 +39,9 @@ pub struct StoredMetadata {
     /// `true` si los metadatos provienen de OMDb o fueron introducidos manualmente.
     /// Las películas con `has_metadata: true` no se re-fetchan en un Refresh Library.
     pub has_metadata: bool,
+
+    /// Ruta local al archivo de subtítulos descargado (`.srt`), si existe.
+    pub subtitle_path: Option<String>,
 }
 
 impl StoredMetadata {
@@ -53,6 +56,7 @@ impl StoredMetadata {
             poster_path: None,
             imdb_id: None,
             has_metadata: false,
+            subtitle_path: None,
         }
     }
 }
@@ -155,6 +159,7 @@ impl MetadataStore {
             entry.synopsis = None;
             entry.poster_path = None;
             entry.imdb_id = None;
+            entry.subtitle_path = None;
         }
     }
 
