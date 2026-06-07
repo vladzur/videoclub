@@ -309,15 +309,16 @@ impl VideoclubWindow {
             log::error!("Error cargando '{}': {}", path, e); return;
         }
 
-        // Aplicar la fuente de subtítulos configurada en Preferencias
+        let video_widget = VideoWidget::new();
+
+        // Aplicar la fuente de subtítulos configurada en Preferencias a nuestra capa GTK nativa
         if let Some(app) = self.application() {
             if let Ok(app) = app.downcast::<crate::application::VideoclubApplication>() {
                 let font = app.imp().settings.subtitle_font_desc();
-                controller.set_subtitle_font(&font);
+                video_widget.set_subtitle_font(&font);
             }
         }
 
-        let video_widget = VideoWidget::new();
         video_widget.set_hexpand(true);
         video_widget.set_vexpand(true);
         let _ = controller.play();

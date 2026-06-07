@@ -123,6 +123,8 @@ mod imp {
         pub parsed_subtitles: RefCell<Vec<SubtitleEntry>>,
         pub subtitle_timer: RefCell<Option<gtk::glib::SourceId>>,
         pub current_subtitle_text: RefCell<String>,
+        pub subtitle_offset_ms: std::cell::Cell<i64>,
+        pub subtitle_font: RefCell<String>,
     }
 
     #[glib::object_subclass]
@@ -140,6 +142,8 @@ mod imp {
             obj.init_template();
         }
     }
+
+
 
     impl ObjectImpl for VideoWidget {
         fn constructed(&self) {
@@ -288,6 +292,7 @@ impl VideoWidget {
                     if path.is_empty() {
                         imp.parsed_subtitles.borrow_mut().clear();
                         imp.subtitle_label.set_visible(false);
+                        imp.subtitle_offset_ms.set(0); // Reiniciar offset al desactivar
                     } else {
                         match std::fs::read(&path) {
                             Ok(bytes) => {
@@ -295,6 +300,7 @@ impl VideoWidget {
                                 let subs = parse_srt(&contents);
                                 println!("GTK Subtitles: Parseados {} bloques de '{}'", subs.len(), path);
                                 *imp.parsed_subtitles.borrow_mut() = subs;
+                                imp.subtitle_offset_ms.set(0); // Reiniciar offset al cargar nuevo archivo
                             }
                             Err(e) => {
                                 println!("GTK Subtitles: ERROR fatal al leer srt '{}': {}", path, e);
@@ -305,6 +311,40 @@ impl VideoWidget {
             }
         }));
         action_group.add_action(&action);
+
+        let delay_add = gio::SimpleAction::new("delay_add", None);
+        delay_add.connect_activate(glib::clone!(
+            #[weak(rename_to = widget)] self,
+            move |_, _| {
+                let imp = widget.imp();
+                let new_offset = imp.subtitle_offset_ms.get() + 100;
+                imp.subtitle_offset_ms.set(new_offset);
+                println!("GTK Subtitles: Retraso ajustado a {}ms", new_offset);
+            }
+        ));
+        action_group.add_action(&delay_add);
+
+        let delay_sub = gio::SimpleAction::new("delay_sub", None);
+        delay_sub.connect_activate(glib::clone!(
+            #[weak(rename_to = widget)] self,
+            move |_, _| {
+                let imp = widget.imp();
+                let new_offset = imp.subtitle_offset_ms.get() - 100;
+                imp.subtitle_offset_ms.set(new_offset);
+                println!("GTK Subtitles: Retraso ajustado a {}ms", new_offset);
+            }
+        ));
+        action_group.add_action(&delay_sub);
+
+        let delay_reset = gio::SimpleAction::new("delay_reset", None);
+        delay_reset.connect_activate(glib::clone!(
+            #[weak(rename_to = widget)] self,
+            move |_, _| {
+                widget.imp().subtitle_offset_ms.set(0);
+                println!("GTK Subtitles: Sincronización restablecida (0ms)");
+            }
+        ));
+        action_group.add_action(&delay_reset);
 
         let menu = gio::Menu::new();
         let section = gio::Menu::new();
@@ -342,6 +382,16 @@ impl VideoWidget {
         }
 
         menu.append_section(None, &section);
+
+        let sync_section = gio::Menu::new();
+        let delay_sub_item = gio::MenuItem::new(Some("Adelantar subtítulos (-100ms)"), Some("subtitle.delay_sub"));
+        let delay_add_item = gio::MenuItem::new(Some("Atrasar subtítulos (+100ms)"), Some("subtitle.delay_add"));
+        let delay_reset_item = gio::MenuItem::new(Some("Restablecer sincronización"), Some("subtitle.delay_reset"));
+        sync_section.append_item(&delay_sub_item);
+        sync_section.append_item(&delay_add_item);
+        sync_section.append_item(&delay_reset_item);
+        menu.append_section(Some("Sincronización"), &sync_section);
+
         imp.subtitle_button.set_menu_model(Some(&menu));
 
         if let Some(path) = auto_select_path {
@@ -356,15 +406,17 @@ impl VideoWidget {
         if let Some(ctrl) = imp.controller.borrow().as_ref() {
             if ctrl.state() == PlaybackState::Playing {
                 let pos_ms = ctrl.position_seconds() * 1000.0;
+                let effective_pos_ms = pos_ms - imp.subtitle_offset_ms.get() as f64;
+                
                 let subs = imp.parsed_subtitles.borrow();
                 let mut active_text = String::new();
                 
                 for sub in subs.iter() {
-                    if pos_ms >= sub.start_ms as f64 && pos_ms <= sub.end_ms as f64 {
+                    if effective_pos_ms >= sub.start_ms as f64 && effective_pos_ms <= sub.end_ms as f64 {
                         active_text = sub.text.clone();
                         break;
                     }
-                    if sub.start_ms as f64 > pos_ms {
+                    if sub.start_ms as f64 > effective_pos_ms {
                         break;
                     }
                 }
@@ -373,7 +425,8 @@ impl VideoWidget {
                 if *current != active_text {
                     *current = active_text.clone();
                     if !active_text.is_empty() {
-                        let markup = format!("<span background=\"#000000A0\" foreground=\"white\" size=\"xx-large\"><b>{}</b></span>", active_text);
+                        let font = imp.subtitle_font.borrow();
+                        let markup = format!("<span background=\"#000000A0\" foreground=\"white\" font_desc=\"{}\"><b>{}</b></span>", font, active_text);
                         imp.subtitle_label.set_markup(&markup);
                         imp.subtitle_label.set_visible(true);
                         // Imprime en terminal solo cuando cambia el subtítulo para evitar spam
@@ -389,6 +442,10 @@ impl VideoWidget {
 
     pub fn set_preferred_subtitle_language(&self, lang: &str) {
         self.imp().preferred_subtitle_lang.replace(lang.to_string());
+    }
+
+    pub fn set_subtitle_font(&self, font_desc: &str) {
+        self.imp().subtitle_font.replace(font_desc.to_string());
     }
 
     pub fn on_pointer_motion(&self, x: f64, y: f64) {

@@ -41,11 +41,7 @@ impl PlaybackController {
         self.pipeline.load_file(path)
     }
 
-    /// Carga un archivo de subtítulos externo.
-    /// Si `path` está vacío, desactiva los subtítulos.
-    pub fn set_subtitle_uri(&self, path: &str) {
-        self.pipeline.set_subtitle_uri(path);
-    }
+
 
     /// Inicia la reproducción. También inhibe el screensaver vía D-Bus.
     pub fn play(&self) -> Result<(), String> {
@@ -94,9 +90,4 @@ impl PlaybackController {
         self.pipeline.set_volume(volume);
     }
 
-    /// Configura la fuente de los subtítulos.
-    /// `font_desc` es una descripción de fuente Pango (ej. "Sans 18").
-    pub fn set_subtitle_font(&self, font_desc: &str) {
-        self.pipeline.set_subtitle_font(font_desc);
-    }
 }
