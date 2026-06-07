@@ -3,4 +3,7 @@
 data/com.vladzur.videoclub.desktop.in
 data/com.vladzur.videoclub.metainfo.xml.in
 data/com.vladzur.videoclub.gschema.xml
+src/poster_card.ui
+src/shortcuts-dialog.ui
+src/video_widget.ui
 src/window.ui

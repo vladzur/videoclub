@@ -12,6 +12,7 @@ use gtk::prelude::*;
 use adw::subclass::prelude::*;
 use adw::prelude::AdwDialogExt;
 use gtk::{gdk, gio, glib};
+use gettextrs::gettext;
 
 use videoclub_core::metadata_store::{MetadataStore, StoredMetadata};
 use videoclub_core::movie::MovieObject;
@@ -248,7 +249,7 @@ impl VideoclubWindow {
         vbox.set_margin_end(4);
 
         let edit_btn = gtk::Button::new();
-        let edit_label = gtk::Label::new(Some("Edit Metadata"));
+        let edit_label = gtk::Label::new(Some(&gettext("Edit Metadata")));
         edit_label.set_halign(gtk::Align::Start);
         edit_btn.set_child(Some(&edit_label));
         edit_btn.set_has_frame(false);
@@ -512,7 +513,7 @@ impl VideoclubWindow {
     /// Abre el diálogo de carpeta y escanea en un hilo.
     fn pick_folder(&self) {
         let dialog = gtk::FileDialog::new();
-        dialog.set_title("Select Movie Folder");
+        dialog.set_title(&gettext("Select Movie Folder"));
 
         dialog.select_folder(
             Some(self),
