@@ -19,6 +19,132 @@ use videoclub_core::movie::MovieObject;
 use crate::player::controller::PlaybackController;
 use crate::widgets::video_widget::VideoWidget;
 
+/// Modo de ordenamiento del catálogo de películas.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SortMode {
+    /// Sin ordenamiento (orden de escaneo original).
+    None,
+    /// Orden alfabético A–Z.
+    TitleAsc,
+    /// Orden alfabético Z–A.
+    TitleDesc,
+    /// Año más reciente primero.
+    YearDesc,
+    /// Año más antiguo primero.
+    YearAsc,
+}
+
+mod movie_sorter {
+    use super::SortMode;
+    use gtk::glib;
+    use gtk::glib::prelude::*;
+    use gtk::glib::subclass::prelude::*;
+    use gtk::subclass::prelude::*;
+    use gtk::Ordering;
+    use videoclub_core::movie::MovieObject;
+
+    mod imp {
+        use super::*;
+        use std::cell::RefCell;
+
+        #[derive(Debug)]
+        pub struct MovieSorter {
+            pub sort_mode: RefCell<SortMode>,
+        }
+
+        impl Default for MovieSorter {
+            fn default() -> Self {
+                Self {
+                    sort_mode: RefCell::new(SortMode::default()),
+                }
+            }
+        }
+
+        #[glib::object_subclass]
+        impl ObjectSubclass for MovieSorter {
+            const NAME: &'static str = "VideoclubMovieSorter";
+            type Type = super::MovieSorter;
+            type ParentType = gtk::Sorter;
+        }
+
+        impl ObjectImpl for MovieSorter {}
+
+        impl SorterImpl for MovieSorter {
+            fn compare(&self, item1: &glib::Object, item2: &glib::Object) -> Ordering {
+                let movie1 = item1.downcast_ref::<MovieObject>();
+                let movie2 = item2.downcast_ref::<MovieObject>();
+
+                let (movie1, movie2) = match (movie1, movie2) {
+                    (Some(m1), Some(m2)) => (m1, m2),
+                    _ => return Ordering::Equal,
+                };
+
+                let has1 = movie1.has_metadata();
+                let has2 = movie2.has_metadata();
+
+                // Películas sin metadatos siempre al final
+                if has1 && !has2 {
+                    return Ordering::Smaller;
+                }
+                if !has1 && has2 {
+                    return Ordering::Larger;
+                }
+
+                let mode = *self.sort_mode.borrow();
+
+                match mode {
+                    SortMode::None => Ordering::Equal,
+                    SortMode::TitleAsc => {
+                        let t1 = movie1.title().to_lowercase();
+                        let t2 = movie2.title().to_lowercase();
+                        t1.cmp(&t2).into()
+                    }
+                    SortMode::TitleDesc => {
+                        let t1 = movie1.title().to_lowercase();
+                        let t2 = movie2.title().to_lowercase();
+                        t2.cmp(&t1).into()
+                    }
+                    SortMode::YearDesc => {
+                        let y1 = movie1.year();
+                        let y2 = movie2.year();
+                        y2.cmp(&y1).into()
+                    }
+                    SortMode::YearAsc => {
+                        let y1 = movie1.year();
+                        let y2 = movie2.year();
+                        y1.cmp(&y2).into()
+                    }
+                }
+            }
+
+            fn order(&self) -> gtk::SorterOrder {
+                gtk::SorterOrder::Total
+            }
+        }
+    }
+
+    glib::wrapper! {
+        pub struct MovieSorter(ObjectSubclass<imp::MovieSorter>)
+            @extends gtk::Sorter;
+    }
+
+    impl MovieSorter {
+        pub fn new(mode: SortMode) -> Self {
+            let sorter: Self = glib::Object::new();
+            sorter.imp().sort_mode.replace(mode);
+            sorter
+        }
+    }
+}
+
+impl Default for SortMode {
+    fn default() -> Self {
+        SortMode::None
+    }
+}
+
+use movie_sorter::MovieSorter;
+
 mod imp {
     use super::*;
 
@@ -41,6 +167,9 @@ mod imp {
         pub search_button: TemplateChild<gtk::ToggleButton>,
 
         #[template_child]
+        pub sort_button: TemplateChild<gtk::MenuButton>,
+
+        #[template_child]
         pub navigation_view: TemplateChild<adw::NavigationView>,
 
         #[template_child]
@@ -57,6 +186,9 @@ mod imp {
 
         /// El filtro de texto para la búsqueda.
         pub string_filter: RefCell<Option<gtk::StringFilter>>,
+
+        /// Modelo de ordenamiento (envuelve el FilterListModel).
+        pub sort_model: RefCell<Option<gtk::SortListModel>>,
 
         /// True mientras se muestran datos de prueba (antes del primer escaneo real).
         pub showing_test_data: Cell<bool>,
@@ -98,6 +230,7 @@ mod imp {
             *self.metadata_store.borrow_mut() = MetadataStore::load();
             let obj = self.obj();
             obj.setup_search_bar();
+            obj.setup_sort_button();
             obj.setup_video_drop_target();
             obj.connect_folder_buttons();
         }
@@ -142,12 +275,17 @@ impl VideoclubWindow {
         filter.set_ignore_case(true);
         imp.string_filter.replace(Some(filter.clone()));
 
-        // Cadena: ListStore → FilterListModel → SingleSelection → GridView
+        // Cadena: ListStore → FilterListModel → SortListModel → SingleSelection → GridView
         let filter_model = gtk::FilterListModel::new(
             Some(store.clone()),
             Some(filter),
         );
-        let selection = gtk::SingleSelection::new(Some(filter_model));
+        let sort_model = gtk::SortListModel::new(
+            Some(filter_model),
+            None::<gtk::Sorter>,
+        );
+        imp.sort_model.replace(Some(sort_model.clone()));
+        let selection = gtk::SingleSelection::new(Some(sort_model));
         imp.movie_grid.set_model(Some(&selection));
 
         // Fábrica de PosterCards
@@ -468,6 +606,84 @@ impl VideoclubWindow {
                 }
             )
         );
+    }
+
+    // ─── Ordenamiento ───────────────────────────────────────────────────────────
+
+    fn setup_sort_button(&self) {
+        let imp = self.imp();
+
+        // Grupo de acciones para el menú de ordenamiento
+        let action_group = gio::SimpleActionGroup::new();
+        self.insert_action_group("sort", Some(&action_group));
+
+        let actions: [(&str, SortMode); 5] = [
+            ("none", SortMode::None),
+            ("title-asc", SortMode::TitleAsc),
+            ("title-desc", SortMode::TitleDesc),
+            ("year-desc", SortMode::YearDesc),
+            ("year-asc", SortMode::YearAsc),
+        ];
+
+        for (name, mode) in actions {
+            let action = gio::SimpleAction::new(name, None);
+            action.connect_activate(glib::clone!(
+                #[weak(rename_to = win)] self,
+                move |_, _| {
+                    win.apply_sort(mode);
+                }
+            ));
+            action_group.add_action(&action);
+        }
+
+        // Construir menú
+        let menu = gio::Menu::new();
+        let section = gio::Menu::new();
+
+        let none_item = gio::MenuItem::new(
+            Some(&gettext("Default Order")),
+            Some("sort.none"),
+        );
+        section.append_item(&none_item);
+
+        let title_asc_item = gio::MenuItem::new(
+            Some(&gettext("Title A → Z")),
+            Some("sort.title-asc"),
+        );
+        section.append_item(&title_asc_item);
+
+        let title_desc_item = gio::MenuItem::new(
+            Some(&gettext("Title Z → A")),
+            Some("sort.title-desc"),
+        );
+        section.append_item(&title_desc_item);
+
+        let year_desc_item = gio::MenuItem::new(
+            Some(&gettext("Year (Newest First)")),
+            Some("sort.year-desc"),
+        );
+        section.append_item(&year_desc_item);
+
+        let year_asc_item = gio::MenuItem::new(
+            Some(&gettext("Year (Oldest First)")),
+            Some("sort.year-asc"),
+        );
+        section.append_item(&year_asc_item);
+
+        menu.append_section(None, &section);
+        imp.sort_button.set_menu_model(Some(&menu));
+    }
+
+    /// Aplica el modo de ordenamiento seleccionado al SortListModel.
+    fn apply_sort(&self, mode: SortMode) {
+        let sorter = MovieSorter::new(mode);
+        if let Some(sort_model) = self.imp().sort_model.borrow().as_ref() {
+            if mode == SortMode::None {
+                sort_model.set_sorter(None::<&gtk::Sorter>);
+            } else {
+                sort_model.set_sorter(Some(&sorter));
+            }
+        }
     }
 
     // ─── Escaneo de directorios ───────────────────────────────────────────────
