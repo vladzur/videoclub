@@ -6,10 +6,11 @@
  */
 
 use adw::prelude::*;
-use gtk::{gio};
+use gtk::{gio, glib};
 use gettextrs::gettext;
 
 use videoclub_core::settings::AppSettings;
+use crate::VideoclubWindow;
 
 const LANGUAGE_CODES: &[&str] = &["es", "en", "fr", "pt", "de", "it"];
 
@@ -37,12 +38,12 @@ pub(crate) fn language_names() -> Vec<String> {
 
 /// Construye y retorna un `adw::PreferencesDialog` con todos sus widgets,
 /// listo para presentar. No usa subclassing — todo es procedural.
-pub fn build_preferences_dialog() -> adw::PreferencesDialog {
+pub fn build_preferences_dialog(window: &VideoclubWindow) -> adw::PreferencesDialog {
     let dialog = adw::PreferencesDialog::new();
     dialog.set_title(&gettext("Preferences"));
 
     dialog.add(&build_apis_page());
-    dialog.add(&build_general_page());
+    dialog.add(&build_general_page(window));
 
     dialog
 }
@@ -126,7 +127,7 @@ fn build_opensubtitles_group() -> adw::PreferencesGroup {
 
 // ─── Página: General ──────────────────────────────────────────────────────────
 
-fn build_general_page() -> adw::PreferencesPage {
+fn build_general_page(window: &VideoclubWindow) -> adw::PreferencesPage {
     let page = adw::PreferencesPage::new();
     page.set_title(&gettext("General"));
     page.set_icon_name(Some("preferences-system-symbolic"));
@@ -174,7 +175,64 @@ fn build_general_page() -> adw::PreferencesPage {
     subs_group.add(&font_entry);
     page.add(&subs_group);
 
+    // ─── Grupo: Biblioteca ──────────────────────────────────────────────
+
+    let lib_group = build_library_group(window);
+    page.add(&lib_group);
+
     page
+}
+
+fn build_library_group(window: &VideoclubWindow) -> adw::PreferencesGroup {
+    // Clonar la referencia para que el closure pueda capturarla con 'static.
+    // VideoclubWindow es un GObject con conteo de referencias, así que clone() es barato.
+    let window = window.clone();
+
+    let group = adw::PreferencesGroup::new();
+    group.set_title(&gettext("Library"));
+    group.set_description(Some(&gettext("Manage your movie library data.")));
+
+    let clear_row = adw::ActionRow::new();
+    clear_row.set_title(&gettext("Clear Library"));
+    clear_row.set_subtitle(&gettext("Remove all movies from your library and start fresh."));
+
+    let clear_button = gtk::Button::with_label(&gettext("Clear…"));
+    clear_button.add_css_class("destructive-action");
+    clear_button.set_valign(gtk::Align::Center);
+    clear_row.add_suffix(&clear_button);
+
+    clear_button.connect_clicked(glib::clone!(
+        #[weak(rename_to = win)] window,
+        move |_| {
+            // Construir el diálogo de confirmación
+            let dialog = adw::AlertDialog::new(
+                Some(&gettext("Clear Library?")),
+                Some(&gettext("This will permanently remove all movies from your library. The scan folders will also be cleared. You can add them again later.")),
+            );
+            dialog.add_response("cancel", &gettext("Cancel"));
+            dialog.add_response("clear", &gettext("Clear"));
+            dialog.set_response_appearance("clear", adw::ResponseAppearance::Destructive);
+            dialog.set_default_response(Some("cancel"));
+            dialog.set_close_response("cancel");
+
+            // Mostrar el diálogo y manejar la respuesta
+            dialog.choose(
+                &win,
+                None::<&gio::Cancellable>,
+                glib::clone!(
+                    #[strong(rename_to = win)] window,
+                    move |response| {
+                        if response.as_str() == "clear" {
+                            win.clear_library();
+                        }
+                    }
+                ),
+            );
+        }
+    ));
+
+    group.add(&clear_row);
+    group
 }
 
 fn build_language_row(

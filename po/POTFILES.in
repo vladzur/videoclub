@@ -1,9 +1,15 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
 data/com.vladzur.videoclub.desktop.in
-data/com.vladzur.videoclub.metainfo.xml.in
 data/com.vladzur.videoclub.gschema.xml
+data/com.vladzur.videoclub.metainfo.xml.in
+src/application.rs
+src/edit_movie_dialog.rs
+src/main.rs
 src/poster_card.ui
+src/preferences_dialog.rs
 src/shortcuts-dialog.ui
 src/video_widget.ui
+src/widgets/video_widget.rs
+src/window.rs
 src/window.ui

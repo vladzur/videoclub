@@ -178,6 +178,12 @@ impl MetadataStore {
         }
     }
 
+    /// Elimina todas las entradas del store y persiste el estado vacío al disco.
+    pub fn clear_all(&mut self) {
+        self.entries.clear();
+        self.save();
+    }
+
     /// Ruta del archivo de store en el sistema de archivos.
     fn store_path() -> PathBuf {
         directories::ProjectDirs::from("com", "vladzur", "videoclub")

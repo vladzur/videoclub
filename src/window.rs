@@ -735,6 +735,33 @@ impl VideoclubWindow {
         }
     }
 
+    /// Elimina todas las películas de la biblioteca, los metadatos
+    /// y los directorios de escaneo guardados. Deja la aplicación
+    /// en estado limpio como si fuera la primera ejecución.
+    pub fn clear_library(&self) {
+        let imp = self.imp();
+
+        // Limpiar catálogo visible
+        if let Some(store) = imp.catalog_store.borrow().as_ref() {
+            store.remove_all();
+        }
+        imp.showing_test_data.set(false);
+        self.update_content_stack();
+
+        // Limpiar metadatos persistentes (library.json)
+        imp.metadata_store.borrow_mut().clear_all();
+
+        // Limpiar directorios de escaneo en GSettings
+        if let Some(app) = self
+            .application()
+            .and_downcast::<crate::application::VideoclubApplication>()
+        {
+            app.imp().settings.clear_scan_directories();
+        }
+
+        log::info!("Biblioteca limpiada completamente");
+    }
+
     /// Abre el diálogo de carpeta y escanea en un hilo.
     fn pick_folder(&self) {
         let dialog = gtk::FileDialog::new();
