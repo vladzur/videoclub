@@ -172,7 +172,11 @@ impl VideoclubApplication {
     }
 
     fn show_preferences(&self) {
-        let dialog = build_preferences_dialog();
+        let window = self
+            .active_window()
+            .and_downcast::<VideoclubWindow>()
+            .expect("active window must be VideoclubWindow");
+        let dialog = build_preferences_dialog(&window);
         dialog.present(self.active_window().as_ref());
     }
 

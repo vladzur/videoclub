@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-06 21:23-0400\n"
+"POT-Creation-Date: 2026-06-07 22:29-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,328 +17,15 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/window.ui:6 src/window.ui:75
+#: data/com.vladzur.videoclub.desktop.in:3
+#: data/com.vladzur.videoclub.metainfo.xml.in:7 src/window.ui:6
+#: src/window.ui:82
 msgid "Videoclub"
 msgstr "Videoclub"
-
-#: src/window.ui:18
-msgid "Search movies"
-msgstr "Search movies"
-
-#: src/window.ui:26
-msgid "Main Menu"
-msgstr "Main Menu"
-
-#: src/window.ui:34
-msgid "Add movie folder"
-msgstr "Add movie folder"
-
-#: src/window.ui:41
-msgid "Refresh library"
-msgstr "Refresh library"
-
-#: src/window.ui:48
-msgid "Preferences"
-msgstr "Preferences"
-
-#: src/window.ui:63
-msgid "Search movies…"
-msgstr "Search movies…"
-
-#: src/window.ui:87
-msgid "No Movies Found"
-msgstr "No Movies Found"
-
-#: src/window.ui:88
-msgid "Add a folder with your movie collection to get started."
-msgstr "Add a folder with your movie collection to get started."
-
-#: src/window.ui:91
-msgid "Add Movie Folder"
-msgstr "Add Movie Folder"
-
-#: src/window.ui:140
-msgid "_Preferences"
-msgstr "_Preferences"
-
-#: src/window.ui:146
-msgid "_Keyboard Shortcuts"
-msgstr "_Keyboard Shortcuts"
-
-#: src/window.ui:150
-msgid "_About Videoclub"
-msgstr "_About Videoclub"
-
-#: src/poster_card.ui:64
-msgid "Subtitles available"
-msgstr "Subtitles available"
-
-#: src/video_widget.ui:21
-msgid "Toggle fullscreen"
-msgstr "Toggle fullscreen"
-
-#: src/video_widget.ui:88
-msgid "Volume"
-msgstr "Volume"
-
-#: src/shortcuts-dialog.ui:6
-msgid "Shortcuts"
-msgstr "Shortcuts"
-
-#: src/shortcuts-dialog.ui:9
-msgctxt "shortcut window"
-msgid "Show Shortcuts"
-msgstr "Show Shortcuts"
-
-#: src/shortcuts-dialog.ui:15
-msgctxt "shortcut window"
-msgid "Quit"
-msgstr "Quit"
-
-#: src/preferences_dialog.rs:20
-msgid "Spanish"
-msgstr "Spanish"
-
-#: src/preferences_dialog.rs:21
-msgid "English"
-msgstr "English"
-
-#: src/preferences_dialog.rs:22
-msgid "French"
-msgstr "French"
-
-#: src/preferences_dialog.rs:23
-msgid "Portuguese"
-msgstr "Portuguese"
-
-#: src/preferences_dialog.rs:24
-msgid "German"
-msgstr "German"
-
-#: src/preferences_dialog.rs:25
-msgid "Italian"
-msgstr "Italian"
-
-#: src/preferences_dialog.rs:45
-msgid "APIs"
-msgstr "APIs"
-
-#: src/preferences_dialog.rs:56
-msgid "OMDb (Open Movie Database)"
-msgstr "OMDb (Open Movie Database)"
-
-#: src/preferences_dialog.rs:57
-msgid "Used to fetch movie metadata, posters, and descriptions."
-msgstr "Used to fetch movie metadata, posters, and descriptions."
-
-#: src/preferences_dialog.rs:60 src/preferences_dialog.rs:92
-msgid "API Key"
-msgstr "API Key"
-
-#: src/preferences_dialog.rs:68 src/preferences_dialog.rs:100
-msgid "Get a free API key"
-msgstr "Get a free API key"
-
-#: src/preferences_dialog.rs:88
-msgid "OpenSubtitles"
-msgstr "OpenSubtitles"
-
-#: src/preferences_dialog.rs:89
-msgid "Used to search and download subtitles for your movies."
-msgstr "Used to search and download subtitles for your movies."
-
-#: src/preferences_dialog.rs:122
-msgid "General"
-msgstr "General"
-
-#: src/preferences_dialog.rs:126
-msgid "Language"
-msgstr "Language"
-
-#: src/preferences_dialog.rs:129
-msgid "Subtitle Language"
-msgstr "Subtitle Language"
-
-#: src/preferences_dialog.rs:139
-msgid "Audio Language"
-msgstr "Audio Language"
-
-#: src/preferences_dialog.rs:153
-msgid "Subtitles Appearance"
-msgstr "Subtitles Appearance"
-
-#: src/preferences_dialog.rs:156
-msgid "Font"
-msgstr "Font"
-
-#: src/edit_movie_dialog.rs:41
-msgid "Edit — {}"
-msgstr "Edit — {}"
-
-#: src/edit_movie_dialog.rs:57
-msgid "File Info"
-msgstr "File Info"
-
-#: src/edit_movie_dialog.rs:66
-msgid "Video File"
-msgstr "Video File"
-
-#: src/edit_movie_dialog.rs:77
-msgid "Subtitles"
-msgstr "Subtitles"
-
-#: src/edit_movie_dialog.rs:86
-msgid "Download Subtitles"
-msgstr "Download Subtitles"
-
-#: src/edit_movie_dialog.rs:102
-msgid "Search Parameters"
-msgstr "Search Parameters"
-
-#: src/edit_movie_dialog.rs:104
-msgid "These values are sent to OMDb. Edit them to refine the search."
-msgstr "These values are sent to OMDb. Edit them to refine the search."
-
-#: src/edit_movie_dialog.rs:108
-msgid "Search Title"
-msgstr "Search Title"
-
-#: src/edit_movie_dialog.rs:113
-msgid "Search Year"
-msgstr "Search Year"
-
-#: src/edit_movie_dialog.rs:120
-msgid "Fetch from OMDb"
-msgstr "Fetch from OMDb"
-
-#: src/edit_movie_dialog.rs:136
-msgid "Stored Metadata"
-msgstr "Stored Metadata"
-
-#: src/edit_movie_dialog.rs:138
-msgid "Editable directly. Press Save to persist without re-fetching."
-msgstr "Editable directly. Press Save to persist without re-fetching."
-
-#: src/edit_movie_dialog.rs:142
-msgid "Title"
-msgstr "Title"
-
-#: src/edit_movie_dialog.rs:147
-msgid "Year"
-msgstr "Year"
-
-#: src/edit_movie_dialog.rs:154
-msgid "Synopsis"
-msgstr "Synopsis"
-
-#: src/edit_movie_dialog.rs:160
-msgid "IMDb ID"
-msgstr "IMDb ID"
-
-#: src/edit_movie_dialog.rs:173
-msgid "Cancel"
-msgstr "Cancel"
-
-#: src/edit_movie_dialog.rs:174
-msgid "Save"
-msgstr "Save"
-
-#: src/edit_movie_dialog.rs:262
-msgid "Downloading…"
-msgstr "Downloading…"
-
-#: src/edit_movie_dialog.rs:276
-msgid "Downloaded ✓"
-msgstr "Downloaded ✓"
-
-#: src/edit_movie_dialog.rs:278
-msgid "Retry"
-msgstr "Retry"
-
-#: src/edit_movie_dialog.rs:367
-msgid "Not available"
-msgstr "Not available"
-
-#: src/window.rs:252
-msgid "Edit Metadata"
-msgstr "Edit Metadata"
-
-#: src/window.rs:516
-msgid "Select Movie Folder"
-msgstr "Select Movie Folder"
-
-#: src/application.rs:167
-msgid "translator-credits"
-msgstr "translator-credits"
 
 #: data/com.vladzur.videoclub.desktop.in:9
 msgid "GTK;"
 msgstr "GTK;"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:8
-msgid "Explora, organiza y reproduce tu colección de películas"
-msgstr "Explora, organiza y reproduce tu colección de películas"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:10
-msgid ""
-"Videoclub es una aplicación de escritorio para GNOME que te permite "
-"explorar, organizar y reproducir tu colección de películas almacenadas "
-"localmente."
-msgstr ""
-"Videoclub es una aplicación de escritorio para GNOME que te permite "
-"explorar, organizar y reproducir tu colección de películas almacenadas "
-"localmente."
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:14
-msgid ""
-"Escanea directorios del sistema de archivos, descarga metadatos y pósters "
-"desde OMDb y TMDb, obtiene subtítulos desde OpenSubtitles, y reproduce video "
-"usando GStreamer con aceleración por hardware."
-msgstr ""
-"Escanea directorios del sistema de archivos, descarga metadatos y pósters "
-"desde OMDb y TMDb, obtiene subtítulos desde OpenSubtitles, y reproduce video "
-"usando GStreamer con aceleración por hardware."
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:19
-msgid "Funcionalidades principales:"
-msgstr "Funcionalidades principales:"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:21
-msgid "Escaneo recursivo de directorios con detección de archivos de video"
-msgstr "Escaneo recursivo de directorios con detección de archivos de video"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:22
-msgid "Vista en grilla responsiva con carátulas"
-msgstr "Vista en grilla responsiva con carátulas"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:23
-msgid "Búsqueda y filtrado por título en tiempo real"
-msgstr "Búsqueda y filtrado por título en tiempo real"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:24
-msgid "Descarga de metadatos, pósters y subtítulos"
-msgstr "Descarga de metadatos, pósters y subtítulos"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:25
-msgid "Reproducción de video con aceleración por hardware (GStreamer)"
-msgstr "Reproducción de video con aceleración por hardware (GStreamer)"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:26
-msgid "Drag &amp; drop para reproducción instantánea"
-msgstr "Drag &amp; drop para reproducción instantánea"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:27
-msgid "Inhibición del protector de pantalla durante la reproducción"
-msgstr "Inhibición del protector de pantalla durante la reproducción"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:32
-msgid "vladzur"
-msgstr "vladzur"
-
-#: data/com.vladzur.videoclub.metainfo.xml.in:56
-#: data/com.vladzur.videoclub.metainfo.xml.in:60
-msgid "A caption"
-msgstr "A caption"
 
 #: data/com.vladzur.videoclub.gschema.xml:6
 msgid "Directories to scan for movies"
@@ -423,3 +110,387 @@ msgid ""
 msgstr ""
 "Pango font description for subtitle rendering (e.g. \"Sans 18\", \"DejaVu "
 "Serif Bold 20\")."
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:8
+msgid "Explora, organiza y reproduce tu colección de películas"
+msgstr "Explora, organiza y reproduce tu colección de películas"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:10
+msgid ""
+"Videoclub es una aplicación de escritorio para GNOME que te permite "
+"explorar, organizar y reproducir tu colección de películas almacenadas "
+"localmente."
+msgstr ""
+"Videoclub es una aplicación de escritorio para GNOME que te permite "
+"explorar, organizar y reproducir tu colección de películas almacenadas "
+"localmente."
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:14
+msgid ""
+"Escanea directorios del sistema de archivos, descarga metadatos y pósters "
+"desde OMDb y TMDb, obtiene subtítulos desde OpenSubtitles, y reproduce video "
+"usando GStreamer con aceleración por hardware."
+msgstr ""
+"Escanea directorios del sistema de archivos, descarga metadatos y pósters "
+"desde OMDb y TMDb, obtiene subtítulos desde OpenSubtitles, y reproduce video "
+"usando GStreamer con aceleración por hardware."
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:19
+msgid "Funcionalidades principales:"
+msgstr "Funcionalidades principales:"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:21
+msgid "Escaneo recursivo de directorios con detección de archivos de video"
+msgstr "Escaneo recursivo de directorios con detección de archivos de video"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:22
+msgid "Vista en grilla responsiva con carátulas"
+msgstr "Vista en grilla responsiva con carátulas"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:23
+msgid "Búsqueda y filtrado por título en tiempo real"
+msgstr "Búsqueda y filtrado por título en tiempo real"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:24
+msgid "Descarga de metadatos, pósters y subtítulos"
+msgstr "Descarga de metadatos, pósters y subtítulos"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:25
+msgid "Reproducción de video con aceleración por hardware (GStreamer)"
+msgstr "Reproducción de video con aceleración por hardware (GStreamer)"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:26
+msgid "Drag &amp; drop para reproducción instantánea"
+msgstr "Drag &amp; drop para reproducción instantánea"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:27
+msgid "Inhibición del protector de pantalla durante la reproducción"
+msgstr "Inhibición del protector de pantalla durante la reproducción"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:32
+msgid "vladzur"
+msgstr "vladzur"
+
+#: data/com.vladzur.videoclub.metainfo.xml.in:56
+#: data/com.vladzur.videoclub.metainfo.xml.in:60
+msgid "A caption"
+msgstr "A caption"
+
+#: src/application.rs:167
+msgid "translator-credits"
+msgstr "translator-credits"
+
+#: src/edit_movie_dialog.rs:41
+msgid "Edit — {}"
+msgstr "Edit — {}"
+
+#: src/edit_movie_dialog.rs:57
+msgid "File Info"
+msgstr "File Info"
+
+#: src/edit_movie_dialog.rs:66
+msgid "Video File"
+msgstr "Video File"
+
+#: src/edit_movie_dialog.rs:77 src/video_widget.ui:21
+msgid "Subtitles"
+msgstr "Subtitles"
+
+#: src/edit_movie_dialog.rs:86
+msgid "Download Subtitles"
+msgstr "Download Subtitles"
+
+#: src/edit_movie_dialog.rs:102
+msgid "Search Parameters"
+msgstr "Search Parameters"
+
+#: src/edit_movie_dialog.rs:104
+msgid "These values are sent to OMDb. Edit them to refine the search."
+msgstr "These values are sent to OMDb. Edit them to refine the search."
+
+#: src/edit_movie_dialog.rs:108
+msgid "Search Title"
+msgstr "Search Title"
+
+#: src/edit_movie_dialog.rs:113
+msgid "Search Year"
+msgstr "Search Year"
+
+#: src/edit_movie_dialog.rs:120
+msgid "Fetch from OMDb"
+msgstr "Fetch from OMDb"
+
+#: src/edit_movie_dialog.rs:136
+msgid "Stored Metadata"
+msgstr "Stored Metadata"
+
+#: src/edit_movie_dialog.rs:138
+msgid "Editable directly. Press Save to persist without re-fetching."
+msgstr "Editable directly. Press Save to persist without re-fetching."
+
+#: src/edit_movie_dialog.rs:142
+msgid "Title"
+msgstr "Title"
+
+#: src/edit_movie_dialog.rs:147
+msgid "Year"
+msgstr "Year"
+
+#: src/edit_movie_dialog.rs:154
+msgid "Synopsis"
+msgstr "Synopsis"
+
+#: src/edit_movie_dialog.rs:160
+msgid "IMDb ID"
+msgstr "IMDb ID"
+
+#: src/edit_movie_dialog.rs:173 src/preferences_dialog.rs:212
+msgid "Cancel"
+msgstr "Cancel"
+
+#: src/edit_movie_dialog.rs:174
+msgid "Save"
+msgstr "Save"
+
+#: src/edit_movie_dialog.rs:262
+msgid "Downloading…"
+msgstr "Downloading…"
+
+#: src/edit_movie_dialog.rs:276
+msgid "Downloaded ✓"
+msgstr "Downloaded ✓"
+
+#: src/edit_movie_dialog.rs:278
+msgid "Retry"
+msgstr "Retry"
+
+#: src/edit_movie_dialog.rs:388
+msgid "Not available"
+msgstr "Not available"
+
+#: src/poster_card.ui:81
+msgid "Subtitles available"
+msgstr "Subtitles available"
+
+#: src/poster_card.ui:133
+msgid "More Details"
+msgstr ""
+
+#: src/preferences_dialog.rs:30
+msgid "Spanish"
+msgstr "Spanish"
+
+#: src/preferences_dialog.rs:31
+msgid "English"
+msgstr "English"
+
+#: src/preferences_dialog.rs:32
+msgid "French"
+msgstr "French"
+
+#: src/preferences_dialog.rs:33
+msgid "Portuguese"
+msgstr "Portuguese"
+
+#: src/preferences_dialog.rs:34
+msgid "German"
+msgstr "German"
+
+#: src/preferences_dialog.rs:35
+msgid "Italian"
+msgstr "Italian"
+
+#: src/preferences_dialog.rs:43 src/window.ui:55
+msgid "Preferences"
+msgstr "Preferences"
+
+#: src/preferences_dialog.rs:55
+msgid "APIs"
+msgstr "APIs"
+
+#: src/preferences_dialog.rs:66
+msgid "OMDb (Open Movie Database)"
+msgstr "OMDb (Open Movie Database)"
+
+#: src/preferences_dialog.rs:67
+msgid "Used to fetch movie metadata, posters, and descriptions."
+msgstr "Used to fetch movie metadata, posters, and descriptions."
+
+#: src/preferences_dialog.rs:70 src/preferences_dialog.rs:102
+msgid "API Key"
+msgstr "API Key"
+
+#: src/preferences_dialog.rs:78 src/preferences_dialog.rs:110
+msgid "Get a free API key"
+msgstr "Get a free API key"
+
+#: src/preferences_dialog.rs:98
+msgid "OpenSubtitles"
+msgstr "OpenSubtitles"
+
+#: src/preferences_dialog.rs:99
+msgid "Used to search and download subtitles for your movies."
+msgstr "Used to search and download subtitles for your movies."
+
+#: src/preferences_dialog.rs:132
+msgid "General"
+msgstr "General"
+
+#: src/preferences_dialog.rs:136
+msgid "Language"
+msgstr "Language"
+
+#: src/preferences_dialog.rs:139
+msgid "Subtitle Language"
+msgstr "Subtitle Language"
+
+#: src/preferences_dialog.rs:149
+msgid "Audio Language"
+msgstr "Audio Language"
+
+#: src/preferences_dialog.rs:163
+msgid "Subtitles Appearance"
+msgstr "Subtitles Appearance"
+
+#: src/preferences_dialog.rs:166
+msgid "Font"
+msgstr "Font"
+
+#: src/preferences_dialog.rs:192
+msgid "Library"
+msgstr "Library"
+
+#: src/preferences_dialog.rs:193
+msgid "Manage your movie library data."
+msgstr "Manage your movie library data."
+
+#: src/preferences_dialog.rs:196
+msgid "Clear Library"
+msgstr "Clear Library"
+
+#: src/preferences_dialog.rs:197
+msgid "Remove all movies from your library and start fresh."
+msgstr "Remove all movies from your library and start fresh."
+
+#: src/preferences_dialog.rs:199
+msgid "Clear…"
+msgstr "Clear…"
+
+#: src/preferences_dialog.rs:209
+msgid "Clear Library?"
+msgstr "Clear Library?"
+
+#: src/preferences_dialog.rs:210
+msgid ""
+"This will permanently remove all movies from your library. The scan folders "
+"will also be cleared. You can add them again later."
+msgstr ""
+"This will permanently remove all movies from your library. The scan folders "
+"will also be cleared. You can add them again later."
+
+#: src/preferences_dialog.rs:213
+msgid "Clear"
+msgstr "Clear"
+
+#: src/shortcuts-dialog.ui:6
+msgid "Shortcuts"
+msgstr "Shortcuts"
+
+#: src/shortcuts-dialog.ui:9
+msgctxt "shortcut window"
+msgid "Show Shortcuts"
+msgstr "Show Shortcuts"
+
+#: src/shortcuts-dialog.ui:15
+msgctxt "shortcut window"
+msgid "Quit"
+msgstr "Quit"
+
+#: src/video_widget.ui:28
+msgid "Toggle fullscreen"
+msgstr "Toggle fullscreen"
+
+#: src/video_widget.ui:115
+msgid "Volume"
+msgstr "Volume"
+
+#: src/widgets/video_widget.rs:352
+msgid "None"
+msgstr ""
+
+#: src/window.rs:390
+msgid "Edit Metadata"
+msgstr "Edit Metadata"
+
+#: src/window.rs:644
+msgid "Default Order"
+msgstr ""
+
+#: src/window.rs:650
+msgid "Title A → Z"
+msgstr ""
+
+#: src/window.rs:656
+msgid "Title Z → A"
+msgstr ""
+
+#: src/window.rs:662
+msgid "Year (Newest First)"
+msgstr ""
+
+#: src/window.rs:668
+msgid "Year (Oldest First)"
+msgstr ""
+
+#: src/window.rs:768
+msgid "Select Movie Folder"
+msgstr "Select Movie Folder"
+
+#: src/window.ui:18
+#, fuzzy
+msgid "Sort movies"
+msgstr "Search movies"
+
+#: src/window.ui:25
+msgid "Search movies"
+msgstr "Search movies"
+
+#: src/window.ui:33
+msgid "Main Menu"
+msgstr "Main Menu"
+
+#: src/window.ui:41
+msgid "Add movie folder"
+msgstr "Add movie folder"
+
+#: src/window.ui:48
+msgid "Refresh library"
+msgstr "Refresh library"
+
+#: src/window.ui:70
+msgid "Search movies…"
+msgstr "Search movies…"
+
+#: src/window.ui:94
+msgid "No Movies Found"
+msgstr "No Movies Found"
+
+#: src/window.ui:95
+msgid "Add a folder with your movie collection to get started."
+msgstr "Add a folder with your movie collection to get started."
+
+#: src/window.ui:98
+msgid "Add Movie Folder"
+msgstr "Add Movie Folder"
+
+#: src/window.ui:147
+msgid "_Preferences"
+msgstr "_Preferences"
+
+#: src/window.ui:153
+msgid "_Keyboard Shortcuts"
+msgstr "_Keyboard Shortcuts"
+
+#: src/window.ui:157
+msgid "_About Videoclub"
+msgstr "_About Videoclub"

@@ -64,6 +64,12 @@ impl AppSettings {
         let _ = self.settings.set_strv("scan-directories", dirs);
     }
 
+    /// Elimina todos los directorios de escaneo de la configuración.
+    pub fn clear_scan_directories(&self) {
+        let empty: Vec<&str> = Vec::new();
+        let _ = self.settings.set_strv("scan-directories", empty);
+    }
+
     /// Idioma preferido para el audio de las películas (código ISO 639-1).
     pub fn preferred_audio_language(&self) -> String {
         self.settings.string("preferred-audio-language").to_string()
