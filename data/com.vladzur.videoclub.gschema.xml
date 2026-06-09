@@ -46,5 +46,10 @@
 			<summary>Subtitle font</summary>
 			<description>Pango font description for subtitle rendering (e.g. "Sans 18", "DejaVu Serif Bold 20").</description>
 		</key>
+		<key name="sort-mode" type="s">
+			<default>"none"</default>
+			<summary>Movie sort mode</summary>
+			<description>The last selected sorting mode for the movie catalog.</description>
+		</key>
 	</schema>
 </schemalist>

@@ -143,6 +143,16 @@ impl AppSettings {
     pub fn set_subtitle_font_desc(&self, font_desc: &str) {
         let _ = self.settings.set_string("subtitle-font-desc", font_desc);
     }
+
+    /// Devuelve el modo de ordenamiento.
+    pub fn sort_mode(&self) -> String {
+        self.settings.string("sort-mode").to_string()
+    }
+
+    /// Guarda el modo de ordenamiento.
+    pub fn set_sort_mode(&self, mode: &str) {
+        let _ = self.settings.set_string("sort-mode", mode);
+    }
 }
 
 impl Default for AppSettings {

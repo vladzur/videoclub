@@ -10,7 +10,7 @@ use std::cell::{Cell, RefCell};
 use gtk::prelude::*;
 
 use adw::subclass::prelude::*;
-use adw::prelude::AdwDialogExt;
+use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 use gettextrs::gettext;
 
@@ -141,6 +141,28 @@ mod movie_sorter {
 impl Default for SortMode {
     fn default() -> Self {
         SortMode::None
+    }
+}
+
+impl SortMode {
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "title-asc" => SortMode::TitleAsc,
+            "title-desc" => SortMode::TitleDesc,
+            "year-desc" => SortMode::YearDesc,
+            "year-asc" => SortMode::YearAsc,
+            _ => SortMode::None,
+        }
+    }
+
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            SortMode::None => "none",
+            SortMode::TitleAsc => "title-asc",
+            SortMode::TitleDesc => "title-desc",
+            SortMode::YearDesc => "year-desc",
+            SortMode::YearAsc => "year-asc",
+        }
     }
 }
 
@@ -288,6 +310,14 @@ impl VideoclubWindow {
         imp.sort_model.replace(Some(sort_model.clone()));
         let selection = gtk::SingleSelection::new(Some(sort_model));
         imp.movie_grid.set_model(Some(&selection));
+
+        // Cargar el ordenamiento persistido
+        if let Some(app) = self.application().and_downcast::<crate::application::VideoclubApplication>() {
+            let saved_mode_str = app.imp().settings.sort_mode();
+            let saved_mode = SortMode::from_str(&saved_mode_str);
+            self.apply_sort(saved_mode);
+            info!("GTK Sort: Orden restaurado a '{}'", saved_mode_str);
+        }
 
         // Fábrica de PosterCards
         self.setup_factory();
@@ -460,7 +490,6 @@ impl VideoclubWindow {
 
         video_widget.set_hexpand(true);
         video_widget.set_vexpand(true);
-        let _ = controller.play();
         // Pasar idioma preferido ANTES de setup_player para auto-selección
         if let Some(app) = self.application() {
             if let Ok(app) = app.downcast::<crate::application::VideoclubApplication>() {
@@ -490,11 +519,23 @@ impl VideoclubWindow {
         self.imp().active_video_widget.replace(Some(video_widget.clone()));
 
         // Detener pipeline y limpiar referencias al cerrar
+        let path_clone = path.clone();
         video_window.connect_close_request(glib::clone!(
             #[weak] video_widget,
             #[weak(rename_to = catalog)] self,
             #[upgrade_or] glib::Propagation::Proceed,
             move |_| {
+                if let Some(ctrl) = video_widget.imp().controller.borrow().as_ref() {
+                    let pos = ctrl.position_seconds();
+                    let dur = ctrl.duration_seconds();
+                    let mut last_pos = None;
+                    if pos > 10.0 && (dur == 0.0 || pos < dur - 10.0) {
+                        last_pos = Some(pos);
+                    }
+                    catalog.imp().metadata_store.borrow_mut().set_last_position(&path_clone, last_pos);
+                    catalog.imp().metadata_store.borrow().save();
+                }
+
                 video_widget.stop_playback();         // ← detener GStreamer
                 video_widget.clear_player_window();   // ← romper ciclo de referencia
                 catalog.imp().active_video_widget.replace(None);
@@ -558,6 +599,36 @@ impl VideoclubWindow {
         video_window.add_controller(motion_ctrl);
 
         video_window.present();
+
+        let stored = self.imp().metadata_store.borrow().get(&path).cloned();
+        let last_pos = stored.and_then(|s| s.last_position);
+
+        if let Some(pos) = last_pos {
+            let dialog = adw::AlertDialog::builder()
+                .heading(&gettext("Resume playback?"))
+                .body(&format!("{} {}", gettext("Do you want to resume from"), crate::widgets::video_widget::format_time(pos)))
+                .build();
+            
+            dialog.add_response("restart", &gettext("Start from beginning"));
+            dialog.add_response("resume", &gettext("Resume"));
+            dialog.set_response_appearance("resume", adw::ResponseAppearance::Suggested);
+            
+            dialog.choose(&video_window, None::<&gio::Cancellable>, glib::clone!(
+                #[weak] video_widget,
+                move |response| {
+                    if let Some(ctrl) = video_widget.imp().controller.borrow().as_ref() {
+                        if response == "resume" {
+                            let _ = ctrl.seek_seconds(pos);
+                        }
+                        let _ = ctrl.play();
+                    }; // <-- Agregado punto y coma
+                }
+            ));
+        } else {
+            if let Some(ctrl) = video_widget.imp().controller.borrow().as_ref() {
+                let _ = ctrl.play();
+            }
+        }
     }
 
     /// Carga y reproduce un archivo de video directamente (desde drag-and-drop).
@@ -684,6 +755,13 @@ impl VideoclubWindow {
             } else {
                 sort_model.set_sorter(Some(&sorter));
             }
+        }
+        
+        // Guardar la preferencia
+        if let Some(app) = self.application().and_downcast::<crate::application::VideoclubApplication>() {
+            let mode_str = mode.to_str();
+            app.imp().settings.set_sort_mode(mode_str);
+            info!("GTK Sort: Orden guardado como '{}'", mode_str);
         }
     }
 
