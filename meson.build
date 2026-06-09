@@ -1,7 +1,6 @@
 project('videoclub', 'rust', 
           version: '1.4.1',
            license: 'GPL-3.0-or-later',
-           description: 'A GTK4 application to manage your video collection.',
     meson_version: '>= 1.0.0',
   default_options: [ 'warning_level=2', 'werror=false', ],
 )
