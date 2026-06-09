@@ -14,7 +14,7 @@ use adw::prelude::AdwDialogExt;
 use gtk::{gdk, gio, glib};
 use gettextrs::gettext;
 
-use videoclub_core::{debug, error, info, warn};
+use videoclub_core::{error, info, warn};
 use videoclub_core::metadata_store::{MetadataStore, StoredMetadata};
 use videoclub_core::movie::MovieObject;
 use crate::player::controller::PlaybackController;
