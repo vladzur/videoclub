@@ -6,7 +6,7 @@
 
 use gtk::{gio, glib};
 use gtk::glib::prelude::*;
-use log::{info, warn};
+use videoclub_core::{info, warn};
 
 /// Inhibidor de screensaver vía D-Bus (`org.freedesktop.ScreenSaver`).
 ///

@@ -9,7 +9,7 @@ use gettextrs::gettext;
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::{gdk, gio, glib};
-use log::info;
+use videoclub_core::info;
 
 use crate::config::VERSION;
 use crate::preferences_dialog::build_preferences_dialog;

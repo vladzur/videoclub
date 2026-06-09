@@ -7,7 +7,7 @@
 use gtk::gdk;
 use gtk::prelude::*;
 use gstreamer::prelude::*;
-use log::{error, info, warn};
+use videoclub_core::{error, info, warn};
 
 use super::events::PlaybackState;
 

@@ -36,11 +36,7 @@ use gtk::prelude::*;
 
 fn main() -> glib::ExitCode {
     // Las API keys se configuran en Preferencias (GSettings), no en .env.
-    // Cargamos .env opcionalmente para que RUST_LOG siga funcionando en desarrollo.
     dotenvy::dotenv().ok();
-
-    // Inicializar el sistema de logging para diagnóstico
-    env_logger::init();
 
     // Inicializar GStreamer (debe llamarse antes de usar cualquier pipeline)
     if let Err(e) = gstreamer::init() {
