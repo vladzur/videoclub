@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use log::{info, warn};
+use crate::{info, warn};
 use serde::{Deserialize, Serialize};
 
 /// Metadatos persistentes de una película, indexados por ruta de archivo.

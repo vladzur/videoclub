@@ -13,6 +13,7 @@ use adw::subclass::prelude::*;
 use gtk::{glib, gio};
 
 use crate::player::controller::PlaybackController;
+use videoclub_core::debug;
 use crate::player::events::PlaybackState;
 
 #[derive(Debug, Clone)]
@@ -555,7 +556,7 @@ impl VideoWidget {
             .map(|w| w.is_fullscreen())
             .unwrap_or(false);
 
-        log::debug!("update_fullscreen_icon: is_fullscreen={}", is_fullscreen);
+        debug!("update_fullscreen_icon: is_fullscreen={}", is_fullscreen);
 
         imp.fullscreen_button.set_icon_name(if is_fullscreen {
             "view-restore-symbolic"

@@ -7,7 +7,7 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use log::{debug, info, warn};
+use crate::{debug, info, warn};
 use walkdir::WalkDir;
 
 /// Extensiones de archivo de video reconocidas por el escáner.

@@ -7,7 +7,7 @@
 use std::io;
 use std::path::Path;
 
-use log::{debug, info, warn};
+use crate::{debug, info, warn};
 
 use crate::cache::PosterCache;
 use crate::filename::parse_movie_filename;
@@ -267,7 +267,7 @@ async fn download_and_save_subtitle(
     movie: &MovieObject,
 ) -> Result<Option<String>, String> {
     info!("Descargando subtítulo: {}", result.filename);
-    let content = subtitles.download_subtitle(&result.download_url).await?;
+    let content = subtitles.download_subtitle(result.file_id).await?;
     let srt_path = video_path.with_extension(format!("{}.srt", language));
     std::fs::write(&srt_path, &content)
         .map_err(|e| format!("Error al guardar subtítulo: {}", e))?;

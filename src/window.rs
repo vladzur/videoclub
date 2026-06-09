@@ -14,6 +14,7 @@ use adw::prelude::AdwDialogExt;
 use gtk::{gdk, gio, glib};
 use gettextrs::gettext;
 
+use videoclub_core::{debug, error, info, warn};
 use videoclub_core::metadata_store::{MetadataStore, StoredMetadata};
 use videoclub_core::movie::MovieObject;
 use crate::player::controller::PlaybackController;
@@ -426,7 +427,7 @@ impl VideoclubWindow {
     fn open_player(&self, movie: &MovieObject) {
         let path = movie.video_path();
         if path.is_empty() {
-            log::warn!("La película '{}' no tiene ruta de video", movie.title());
+            warn!("La película '{}' no tiene ruta de video", movie.title());
             return;
         }
 
@@ -441,10 +442,10 @@ impl VideoclubWindow {
 
         let controller = match PlaybackController::new() {
             Ok(c) => c,
-            Err(e) => { log::error!("PlaybackController: {}", e); return; }
+            Err(e) => { error!("PlaybackController: {}", e); return; }
         };
         if let Err(e) = controller.load(&path) {
-            log::error!("Error cargando '{}': {}", path, e); return;
+            error!("Error cargando '{}': {}", path, e); return;
         }
 
         let video_widget = VideoWidget::new();
@@ -724,11 +725,11 @@ impl VideoclubWindow {
         };
 
         if dirs.is_empty() {
-            log::info!("Refresh: no hay directorios configurados");
+            info!("Refresh: no hay directorios configurados");
             return;
         }
 
-        log::info!("Refresh: re-escaneando {} directorio(s)", dirs.len());
+        info!("Refresh: re-escaneando {} directorio(s)", dirs.len());
         self.imp().enrich_after_scan.set(true);
         for dir in dirs {
             self.scan_directory(dir);
@@ -759,7 +760,7 @@ impl VideoclubWindow {
             app.imp().settings.clear_scan_directories();
         }
 
-        log::info!("Biblioteca limpiada completamente");
+        info!("Biblioteca limpiada completamente");
     }
 
     /// Abre el diálogo de carpeta y escanea en un hilo.
@@ -787,7 +788,7 @@ impl VideoclubWindow {
     /// Escanea un directorio en un hilo separado y agrega los resultados al catálogo.
     /// También guarda la ruta en GSettings para recordarla entre sesiones.
     pub(crate) fn scan_directory(&self, path: String) {
-        log::info!("Escaneando directorio: {}", path);
+        info!("Escaneando directorio: {}", path);
         let imp = self.imp();
 
         // Si se estaban mostrando datos de prueba, limpiar el catálogo
@@ -803,7 +804,7 @@ impl VideoclubWindow {
             .and_downcast::<crate::application::VideoclubApplication>()
         {
             app.imp().settings.add_scan_directory(&path);
-            log::info!("Directorio guardado en GSettings: {}", path);
+            info!("Directorio guardado en GSettings: {}", path);
         }
 
         let (sender, receiver) = async_channel::bounded::<String>(32);
@@ -925,11 +926,11 @@ impl VideoclubWindow {
             .unwrap_or_else(|| "es".to_string());
 
         if api_key.is_empty() {
-            log::info!("Sin API key de OMDb configurada, omitiendo enriquecimiento");
+            info!("Sin API key de OMDb configurada, omitiendo enriquecimiento");
             return;
         }
 
-        log::info!("Enriqueciendo {} películas con OMDb...", movies.len());
+        info!("Enriqueciendo {} películas con OMDb...", movies.len());
 
         // Extraer datos del store para cada película (overrides de búsqueda)
         let stored_map: Vec<(String, Option<StoredMetadata>)> = movies.iter()
@@ -948,7 +949,7 @@ impl VideoclubWindow {
             .enable_all()
             .build();
         let Ok(rt) = rt else {
-            log::error!("No se pudo crear runtime tokio");
+            error!("No se pudo crear runtime tokio");
             return;
         };
 
@@ -960,16 +961,16 @@ impl VideoclubWindow {
 
                 let omdb = match OmdbClient::new(api_key) {
                     Ok(c) => c,
-                    Err(e) => { log::error!("Error al inicializar OMDb: {}", e); return; }
+                    Err(e) => { error!("Error al inicializar OMDb: {}", e); return; }
                 };
                 let has_opensubs = !opensubs_key.is_empty();
                 let subtitles = match SubtitlesClient::new(opensubs_key) {
                     Ok(s) => s,
-                    Err(e) => { log::warn!("Error al crear SubtitlesClient: {}", e); return; }
+                    Err(e) => { warn!("Error al crear SubtitlesClient: {}", e); return; }
                 };
                 let enricher = match MovieEnricher::new(omdb, subtitles) {
                     Ok(e) => e,
-                    Err(e) => { log::error!("Error al crear MovieEnricher: {}", e); return; }
+                    Err(e) => { error!("Error al crear MovieEnricher: {}", e); return; }
                 };
 
                 for (video_path, stored) in &stored_map {
@@ -978,7 +979,7 @@ impl VideoclubWindow {
                         .enrich_metadata(&tmp_movie, stored.as_ref())
                         .await
                         .unwrap_or_else(|e| {
-                            log::warn!("Error enriqueciendo '{}': {}", video_path, e);
+                            warn!("Error enriqueciendo '{}': {}", video_path, e);
                             StoredMetadata::new_pending("unknown", None)
                         });
 
@@ -989,7 +990,7 @@ impl VideoclubWindow {
                             .download_subtitles(&tmp_movie, &preferred_subtitle_language)
                             .await
                             .unwrap_or_else(|e| {
-                                log::warn!("Error descargando subtítulos para '{}': {}", video_path, e);
+                                warn!("Error descargando subtítulos para '{}': {}", video_path, e);
                                 None
                             });
                     }
@@ -1019,7 +1020,7 @@ impl VideoclubWindow {
                 }
                 // Persistir store al disco al finalizar el lote
                 win.imp().metadata_store.borrow().save();
-                log::info!("Enriquecimiento completado y store guardado");
+                info!("Enriquecimiento completado y store guardado");
             }
         ));
     }
@@ -1049,14 +1050,14 @@ impl VideoclubWindow {
             .unwrap_or_else(|| "es".to_string());
 
         if opensubs_key.is_empty() {
-            log::info!("Sin API key de OpenSubtitles configurada, omitiendo descarga de subtítulos");
+            info!("Sin API key de OpenSubtitles configurada, omitiendo descarga de subtítulos");
             glib::spawn_future_local(async move {
                 on_done(false);
             });
             return;
         }
 
-        log::info!("Descargando subtítulos para '{}'...", movie.title());
+        info!("Descargando subtítulos para '{}'...", movie.title());
 
         // Extraer datos planos antes de mover al thread (MovieObject no es Send)
         let video_path = movie.video_path().to_string();
@@ -1070,7 +1071,7 @@ impl VideoclubWindow {
             .enable_all()
             .build();
         let Ok(rt) = rt else {
-            log::error!("No se pudo crear runtime tokio");
+            error!("No se pudo crear runtime tokio");
             glib::spawn_future_local(async move {
                 on_done(false);
             });
@@ -1087,7 +1088,7 @@ impl VideoclubWindow {
                     let subtitles = match SubtitlesClient::new(opensubs_key) {
                         Ok(s) => Some(s),
                         Err(e) => {
-                            log::warn!("Error al crear SubtitlesClient: {}", e);
+                            warn!("Error al crear SubtitlesClient: {}", e);
                             None
                         }
                     };
@@ -1107,7 +1108,7 @@ impl VideoclubWindow {
                             )
                             .await
                             .unwrap_or_else(|e| {
-                                log::warn!(
+                                warn!(
                                     "Error descargando subtítulos para '{}': {}",
                                     video_path_clone,
                                     e
@@ -1131,7 +1132,7 @@ impl VideoclubWindow {
 
                 if let Some(ref path) = subtitle_path {
                     movie_for_result.set_subtitles_ready(true);
-                    log::info!("Subtítulos descargados: {}", path);
+                    info!("Subtítulos descargados: {}", path);
                 }
 
                 // Actualizar el store con la ruta del subtítulo

@@ -9,7 +9,7 @@ use std::io;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-use log::{debug, info, warn};
+use crate::{debug, info, warn};
 
 /// Gestor de caché para pósters de películas.
 ///

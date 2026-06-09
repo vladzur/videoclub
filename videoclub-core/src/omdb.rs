@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use bytes::Bytes;
-use log::{debug, error, info};
+use crate::{debug, error, info};
 use reqwest::Client;
 use serde::Deserialize;
 

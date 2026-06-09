@@ -4,11 +4,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use log::{debug, info};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::hash::VideoHash;
+use crate::{debug, info};
 
 /// Cliente HTTP para la API de OpenSubtitles.
 pub struct SubtitlesClient {
@@ -23,7 +23,7 @@ pub struct SubtitleResult {
     pub id: String,
     pub language: String,
     pub filename: String,
-    pub download_url: String,
+    pub file_id: u64,
     #[serde(default)]
     pub rating: f64,
 }
@@ -57,6 +57,18 @@ struct SubtitleAttributes {
 struct SubtitleFile {
     file_name: Option<String>,
     file_id: Option<u64>,
+}
+
+/// Cuerpo de la petición POST al endpoint de descarga.
+#[derive(Debug, Serialize)]
+struct DownloadRequest {
+    file_id: u64,
+}
+
+/// Respuesta del endpoint de descarga. Contiene un link temporal al archivo.
+#[derive(Debug, Deserialize)]
+struct DownloadResponse {
+    link: String,
 }
 
 impl SubtitlesClient {
@@ -171,26 +183,54 @@ impl SubtitlesClient {
     }
 
     /// Descarga el contenido de un archivo de subtítulos.
-    pub async fn download_subtitle(&self, download_url: &str) -> Result<String, String> {
-        debug!("Descargando subtítulo: {}", download_url);
+    ///
+    /// Hace un POST a `/api/v1/download` con el `file_id` para obtener un link
+    /// temporal, y luego un GET a ese link para descargar el contenido.
+    pub async fn download_subtitle(&self, file_id: u64) -> Result<String, String> {
+        let download_url = format!("{}/download", self.base_url);
+        debug!("Descargando subtítulo (file_id={})", file_id);
 
+        // Paso 1: Obtener el link de descarga temporal
         let response = self
             .http
-            .get(download_url)
+            .post(&download_url)
             .header("Api-Key", &self.api_key)
             .header("User-Agent", &self.user_agent)
+            .header("Content-Type", "application/json")
+            .json(&DownloadRequest { file_id })
             .send()
             .await
             .map_err(|e| format!("Download request failed: {}", e))?;
 
         if !response.status().is_success() {
             return Err(format!(
-                "Failed to download subtitle: {}",
+                "Failed to get download link: {}",
                 response.status()
             ));
         }
 
-        response
+        let download_response: DownloadResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse download response: {}", e))?;
+
+        // Paso 2: Descargar el contenido desde el link temporal
+        let content_response = self
+            .http
+            .get(&download_response.link)
+            .header("User-Agent", &self.user_agent)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to fetch subtitle file: {}", e))?;
+
+        if !content_response.status().is_success() {
+            return Err(format!(
+                "Failed to download subtitle file: {}",
+                content_response.status()
+            ));
+        }
+
+        content_response
             .text()
             .await
             .map_err(|e| format!("Failed to read subtitle text: {}", e))
@@ -211,10 +251,7 @@ impl SubtitlesClient {
                         .file_name
                         .clone()
                         .unwrap_or_else(|| format!("subtitle_{}.srt", file_id)),
-                    download_url: format!(
-                        "https://api.opensubtitles.com/api/v1/download/{}",
-                        file_id
-                    ),
+                    file_id,
                     rating: 0.0,
                 })
             })

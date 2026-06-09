@@ -24,6 +24,7 @@ pub mod scanner;
 pub mod hash;
 pub mod filename;
 pub mod cache;
+pub mod log_macros;
 pub mod omdb;
 pub mod subtitles;
 pub mod enricher;
