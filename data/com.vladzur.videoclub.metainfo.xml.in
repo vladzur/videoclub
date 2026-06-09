@@ -62,6 +62,16 @@
   </screenshots>
 
   <releases>
+    <release version="1.4.1" date="2026-06-08">
+      <url type="details">https://github.com/vladzur/videoclub/releases/tag/v1.4.1</url>
+      <description translate="no">
+        <p>Mejoras de diagnóstico y corrección en descarga de subtítulos.</p>
+        <ul>
+          <li>Reimplementación del sistema de logging con macros propios basados en println! para compatibilidad con GTK4.</li>
+          <li>Corrección del endpoint de descarga de OpenSubtitles: uso correcto de POST /api/v1/download con link temporal.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.0" date="2026-06-08">
       <url type="details">https://github.com/vladzur/videoclub/releases/tag/v1.4.0</url>
       <description translate="no">
