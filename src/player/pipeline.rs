@@ -125,6 +125,14 @@ impl PlaybackPipeline {
     /// Busca a una posición específica en segundos.
     pub fn seek(&self, seconds: u64) -> Result<(), String> {
         let position = gstreamer::ClockTime::from_seconds(seconds);
+        
+        // GStreamer requiere que el pipeline esté al menos en PAUSED para hacer seek.
+        let (_, current_state, _) = self.playbin.state(gstreamer::ClockTime::NONE);
+        if current_state < gstreamer::State::Paused {
+            let _ = self.playbin.set_state(gstreamer::State::Paused);
+            let _ = self.playbin.state(gstreamer::ClockTime::NONE);
+        }
+
         self.playbin
             .seek_simple(
                 gstreamer::SeekFlags::FLUSH | gstreamer::SeekFlags::KEY_UNIT,

@@ -51,6 +51,10 @@ pub struct StoredMetadata {
 
     /// Ruta local al archivo de subtítulos descargado (`.srt`), si existe.
     pub subtitle_path: Option<String>,
+
+    /// Posición en la que se detuvo la reproducción por última vez.
+    #[serde(default)]
+    pub last_position: Option<f64>,
 }
 
 impl StoredMetadata {
@@ -69,6 +73,7 @@ impl StoredMetadata {
             runtime: None,
             has_metadata: false,
             subtitle_path: None,
+            last_position: None,
         }
     }
 }
@@ -175,8 +180,17 @@ impl MetadataStore {
             entry.genre = None;
             entry.runtime = None;
             entry.subtitle_path = None;
+            entry.last_position = None;
         }
     }
+
+    /// Actualiza la última posición de reproducción de una película.
+    pub fn set_last_position(&mut self, video_path: &str, position: Option<f64>) {
+        if let Some(entry) = self.entries.get_mut(video_path) {
+            entry.last_position = position;
+        }
+    }
+
 
     /// Elimina todas las entradas del store y persiste el estado vacío al disco.
     pub fn clear_all(&mut self) {

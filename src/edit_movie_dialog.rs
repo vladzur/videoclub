@@ -334,6 +334,7 @@ pub fn build_edit_movie_dialog(
                     runtime: existing.as_ref().and_then(|e| e.runtime.clone()),
                     has_metadata: true,
                     subtitle_path: existing.as_ref().and_then(|e| e.subtitle_path.clone()),
+                    last_position: existing.as_ref().and_then(|e| e.last_position),
                 };
                 store.upsert(&video_path, updated);
                 store.save();

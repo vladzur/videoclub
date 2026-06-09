@@ -684,7 +684,7 @@ fn scan_subtitle_files(video_path: &str, movie_title: &str) -> Vec<SubtitleFile>
 }
 
 /// Formatea segundos como MM:SS.
-fn format_time(secs: f64) -> String {
+pub fn format_time(secs: f64) -> String {
     let total = secs as u64;
     let m = total / 60;
     let s = total % 60;

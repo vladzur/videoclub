@@ -155,6 +155,7 @@ impl MovieEnricher {
             },
             has_metadata: true,
             subtitle_path: None,
+            last_position: None,
         })
     }
 
