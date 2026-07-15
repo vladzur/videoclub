@@ -162,17 +162,28 @@ fn build_general_page(window: &VideoclubWindow) -> adw::PreferencesPage {
     let subs_group = adw::PreferencesGroup::new();
     subs_group.set_title(&gettext("Subtitles Appearance"));
 
-    let font_entry = adw::EntryRow::new();
-    font_entry.set_title(&gettext("Font"));
-    font_entry.set_text(&AppSettings::new().subtitle_font_desc());
-    font_entry.connect_changed(|e| {
-        let desc = e.text();
-        if !desc.is_empty() {
-            AppSettings::new().set_subtitle_font_desc(&desc);
+    // Fila con el selector de fuente visual (FontDialogButton)
+    let font_row = adw::ActionRow::new();
+    font_row.set_title(&gettext("Font"));
+
+    let font_dialog = gtk::FontDialog::new();
+    let font_button = gtk::FontDialogButton::new(Some(font_dialog));
+
+    // Cargar la fuente actual desde la configuración
+    let current_desc = gtk::pango::FontDescription::from_string(
+        &AppSettings::new().subtitle_font_desc()
+    );
+    font_button.set_font_desc(&current_desc);
+
+    // Guardar cambios cuando el usuario seleccione otra fuente
+    font_button.connect_font_desc_notify(move |btn| {
+        if let Some(desc) = btn.font_desc() {
+            AppSettings::new().set_subtitle_font_desc(&desc.to_string());
         }
     });
 
-    subs_group.add(&font_entry);
+    font_row.add_suffix(&font_button);
+    subs_group.add(&font_row);
     page.add(&subs_group);
 
     // ─── Grupo: Biblioteca ──────────────────────────────────────────────
